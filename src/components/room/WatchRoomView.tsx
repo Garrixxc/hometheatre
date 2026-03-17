@@ -46,6 +46,7 @@ import { InviteModal } from './InviteModal';
 import { MessageItem } from './MessageItem';
 import { AICompanion } from './AICompanion';
 import { UniversalPlayer } from './UniversalPlayer';
+import { QueueSearch } from './QueueSearch';
 
 export const WatchRoomView = ({ roomId, onBack }: { roomId: string, onBack: () => void }) => {
   const { user } = useContext(AuthContext);
@@ -64,8 +65,6 @@ export const WatchRoomView = ({ roomId, onBack }: { roomId: string, onBack: () =
   const [isMuted, setIsMuted] = useState(false);
   const [moderatingUser, setModeratingUser] = useState<string | null>(null);
   const [showQueue, setShowQueue] = useState(false);
-  const [newQueueUrl, setNewQueueUrl] = useState('');
-  const [newQueueTitle, setNewQueueTitle] = useState('');
   const [hoverTime, setHoverTime] = useState<number | null>(null);
   const [isScrubbing, setIsScrubbing] = useState(false);
   const [showAutoplayOverlay, setShowAutoplayOverlay] = useState(false);
@@ -289,32 +288,19 @@ export const WatchRoomView = ({ roomId, onBack }: { roomId: string, onBack: () =
     }
   };
 
-  const handleAddToQueue = async () => {
-    if (!isHost || !newQueueUrl.trim() || !newQueueTitle.trim()) return;
+  const handleAddToQueue = async (video: { title: string; videoUrl: string; thumbnail: string }) => {
+    if (!isHost) return;
     
-    const getThumbnail = (url: string) => {
-      if (url.includes('youtube.com') || url.includes('youtu.be')) {
-        const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-        const match = url.match(regExp);
-        if (match && match[2].length === 11) {
-          return `https://img.youtube.com/vi/${match[2]}/mqdefault.jpg`;
-        }
-      }
-      return `https://picsum.photos/seed/${Math.random()}/320/180`;
-    };
-
     const newItem: QueueItem = {
       id: Math.random().toString(36).substr(2, 9),
-      title: newQueueTitle,
-      videoUrl: newQueueUrl,
-      thumbnail: getThumbnail(newQueueUrl)
+      title: video.title,
+      videoUrl: video.videoUrl,
+      thumbnail: video.thumbnail
     };
     try {
       await updateDoc(doc(db, 'rooms', roomId), {
         queue: arrayUnion(newItem)
       });
-      setNewQueueUrl('');
-      setNewQueueTitle('');
     } catch (e) {
       handleFirestoreError(e, OperationType.UPDATE, `rooms/${roomId}`);
     }
@@ -627,34 +613,11 @@ export const WatchRoomView = ({ roomId, onBack }: { roomId: string, onBack: () =
 
         <div className="flex-1 overflow-hidden flex flex-col">
           {showQueue && isHost ? (
-            <div className="flex-1 flex flex-col p-6 overflow-y-auto no-scrollbar space-y-6">
-              <div className="space-y-4">
-                <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Add to Playlist</p>
-                <div className="space-y-2">
-                  <input 
-                    type="text" 
-                    placeholder="Video Title"
-                    value={newQueueTitle}
-                    onChange={(e) => setNewQueueTitle(e.target.value)}
-                    className="w-full bg-black/40 border border-white/5 rounded-2xl py-3 px-4 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-[#0A84FF]/40"
-                  />
-                  <div className="flex gap-2">
-                    <input 
-                      type="text" 
-                      placeholder="Paste link"
-                      value={newQueueUrl}
-                      onChange={(e) => setNewQueueUrl(e.target.value)}
-                      className="flex-1 bg-black/40 border border-white/5 rounded-2xl py-3 px-4 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-[#0A84FF]/40"
-                    />
-                    <button 
-                      onClick={handleAddToQueue}
-                      className="bg-[#0A84FF] text-white px-4 rounded-2xl"
-                    >
-                      <Plus className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-              </div>
+            <div className="flex-1 flex flex-col p-6 overflow-y-auto no-scrollbar space-y-8">
+              <QueueSearch 
+                currentVideoUrl={room.videoUrl} 
+                onAdd={handleAddToQueue} 
+              />
 
               <div className="flex-1 space-y-4">
                 <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Up Next ({room.queue?.length || 0})</p>
