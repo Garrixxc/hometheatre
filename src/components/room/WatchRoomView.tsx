@@ -78,56 +78,17 @@ export const WatchRoomView = ({ roomId, onBack }: { roomId: string, onBack: () =
         const data = { id: document.id, ...document.data() } as Room;
         setRoom(data);
         
-        if (videoRef.current && user?.uid !== data.hostId) {
-          const video = videoRef.current;
-          
-          if (!initialSyncDone.current && video.readyState >= 1) {
-            video.currentTime = data.currentTime;
-            if (data.playbackState === 'playing') {
-              video.play().catch(() => {});
-            }
-            initialSyncDone.current = true;
-            setIsSyncing(false);
+        // Track local time for Guests only when drifting significantly
+        if (!isHost) {
+          const drift = Math.abs(localCurrentTime - data.currentTime);
+          if (drift > 5) { // Loosened drift threshold for better performance
+            setLocalCurrentTime(data.currentTime);
           }
-
-          if (initialSyncDone.current) {
-            if (data.playbackState === 'playing' && video.paused) {
-              video.play().catch(() => {});
-            } else if (data.playbackState === 'paused' && !video.paused) {
-              video.pause();
-            }
-
-            const drift = Math.abs(video.currentTime - data.currentTime);
-            if (drift > 2) {
-              video.currentTime = data.currentTime;
-            }
-          }
-        } else if (isHost) {
-          setIsSyncing(false);
         }
       }
     }, (e) => handleFirestoreError(e, OperationType.GET, `rooms/${roomId}`));
     return unsubscribe;
-  }, [roomId, user?.uid, isHost]);
-
-  useEffect(() => {
-    if (!isHost || !room || !videoRef.current) return;
-
-    const interval = setInterval(async () => {
-      if (!videoRef.current) return;
-      try {
-        await updateDoc(doc(db, 'rooms', roomId), {
-          currentTime: videoRef.current.currentTime,
-          playbackState: videoRef.current.paused ? 'paused' : 'playing',
-          lastUpdated: serverTimestamp()
-        });
-      } catch (e) {
-        console.error("Failed to update host playback state", e);
-      }
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [isHost, roomId, room?.id]);
+  }, [roomId, isHost, localCurrentTime]);
 
   useEffect(() => {
     const q = query(collection(db, 'rooms', roomId, 'messages'), orderBy('timestamp', 'asc'), limit(50));
@@ -162,15 +123,13 @@ export const WatchRoomView = ({ roomId, onBack }: { roomId: string, onBack: () =
   };
 
   const togglePlayback = async () => {
-    if (!isHost || !videoRef.current) return;
-    const newState = videoRef.current.paused ? 'playing' : 'paused';
-    if (newState === 'playing') videoRef.current.play();
-    else videoRef.current.pause();
-
+    if (!isHost || !room) return;
+    const newState = room.playbackState === 'playing' ? 'paused' : 'playing';
+    
     try {
       await updateDoc(doc(db, 'rooms', roomId), {
         playbackState: newState,
-        currentTime: videoRef.current.currentTime
+        currentTime: localCurrentTime
       });
     } catch (e) {
       handleFirestoreError(e, OperationType.UPDATE, `rooms/${roomId}`);
@@ -178,8 +137,7 @@ export const WatchRoomView = ({ roomId, onBack }: { roomId: string, onBack: () =
   };
 
   const handleSeek = async (time: number) => {
-    if (!isHost || !videoRef.current) return;
-    videoRef.current.currentTime = time;
+    if (!isHost) return;
     setLocalCurrentTime(time);
     
     if (!isScrubbing) {
@@ -194,17 +152,16 @@ export const WatchRoomView = ({ roomId, onBack }: { roomId: string, onBack: () =
   };
 
   const handleScrubChange = (time: number) => {
-    if (!isHost || !videoRef.current) return;
+    if (!isHost) return;
     setLocalCurrentTime(time);
-    videoRef.current.currentTime = time;
   };
 
   const handleScrubEnd = async () => {
-    if (!isHost || !videoRef.current) return;
+    if (!isHost) return;
     setIsScrubbing(false);
     try {
       await updateDoc(doc(db, 'rooms', roomId), {
-        currentTime: videoRef.current.currentTime
+        currentTime: localCurrentTime
       });
     } catch (e) {
       handleFirestoreError(e, OperationType.UPDATE, `rooms/${roomId}`);
@@ -213,18 +170,11 @@ export const WatchRoomView = ({ roomId, onBack }: { roomId: string, onBack: () =
 
   const handleVolumeChange = (newVolume: number) => {
     setVolume(newVolume);
-    if (videoRef.current) {
-      videoRef.current.volume = newVolume;
-      setIsMuted(newVolume === 0);
-    }
+    setIsMuted(newVolume === 0);
   };
 
   const toggleMute = () => {
-    if (videoRef.current) {
-      const newMuted = !isMuted;
-      setIsMuted(newMuted);
-      videoRef.current.muted = newMuted;
-    }
+    setIsMuted(!isMuted);
   };
 
   const handleMuteUser = async (userId: string) => {
@@ -334,16 +284,37 @@ export const WatchRoomView = ({ roomId, onBack }: { roomId: string, onBack: () =
           playbackState={room.playbackState}
           currentTime={localCurrentTime}
           isHost={isHost}
-          onTimeUpdate={(time) => {
+          onTimeUpdate={async (time) => {
             setLocalCurrentTime(time);
+            if (isHost && Math.abs(time - room.currentTime) > 2) {
+              try {
+                await updateDoc(doc(db, 'rooms', roomId), { 
+                  currentTime: time,
+                  lastUpdated: serverTimestamp()
+                });
+              } catch (e) {
+                console.error("Failed to update host time", e);
+              }
+            }
           }}
-          onPlaybackChange={(state) => {
-            if (isHost) updateDoc(doc(db, 'rooms', roomId), { playbackState: state });
+          onPlaybackChange={async (state) => {
+            if (isHost && state !== room.playbackState) {
+              try {
+                await updateDoc(doc(db, 'rooms', roomId), { 
+                  playbackState: state,
+                  lastUpdated: serverTimestamp()
+                });
+              } catch (e) {
+                console.error("Failed to update host playback state", e);
+              }
+            }
           }}
           onDurationChange={(d) => setDuration(d)}
           onEnded={() => {
             if (isHost) handlePlayNext();
           }}
+          volume={volume}
+          isMuted={isMuted}
         />
 
         <AnimatePresence>
@@ -482,10 +453,7 @@ export const WatchRoomView = ({ roomId, onBack }: { roomId: string, onBack: () =
                 {!isHost && (
                   <button 
                     onClick={() => {
-                      if (videoRef.current) {
-                        videoRef.current.currentTime = room.currentTime;
-                        if (room.playbackState === 'playing') videoRef.current.play();
-                      }
+                      setLocalCurrentTime(room.currentTime);
                     }}
                     className="flex items-center gap-1.5 px-3 py-1 bg-[#0A84FF]/20 text-[#0A84FF] rounded-full text-[10px] font-bold hover:bg-[#0A84FF]/30 transition-colors"
                   >

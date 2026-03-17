@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play } from 'lucide-react';
+import { Play, Youtube as YoutubeIcon, Lock as LockIcon } from 'lucide-react';
 
 interface UniversalPlayerProps {
   videoUrl: string | null;
@@ -12,6 +12,15 @@ interface UniversalPlayerProps {
   onPlaybackChange: (state: 'playing' | 'paused') => void;
   onDurationChange: (duration: number) => void;
   onEnded: () => void;
+  volume?: number;
+  isMuted?: boolean;
+}
+
+declare global {
+  interface Window {
+    onYouTubeIframeAPIReady: () => void;
+    YT: any;
+  }
 }
 
 export const UniversalPlayer = ({
@@ -23,11 +32,16 @@ export const UniversalPlayer = ({
   onTimeUpdate,
   onPlaybackChange,
   onDurationChange,
-  onEnded
+  onEnded,
+  volume = 1,
+  isMuted = false
 }: UniversalPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const playerRef = useRef<any>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [isYouTube, setIsYouTube] = useState(false);
   const [ytId, setYtId] = useState<string | null>(null);
+  const [isApiReady, setIsApiReady] = useState(false);
 
   useEffect(() => {
     if (videoUrl?.includes('youtube.com') || videoUrl?.includes('youtu.be')) {
@@ -40,6 +54,111 @@ export const UniversalPlayer = ({
       setYtId(null);
     }
   }, [videoUrl]);
+
+  // Load YouTube API
+  useEffect(() => {
+    if (!isYouTube || ytId === null) return;
+
+    if (!window.YT) {
+      const tag = document.createElement('script');
+      tag.src = "https://www.youtube.com/iframe_api";
+      const firstScriptTag = document.getElementsByTagName('script')[0];
+      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+
+      window.onYouTubeIframeAPIReady = () => {
+        setIsApiReady(true);
+      };
+    } else {
+      setIsApiReady(true);
+    }
+  }, [isYouTube, ytId]);
+
+  // Initialize YouTube Player
+  useEffect(() => {
+    if (!isApiReady || !ytId || !containerRef.current || playerRef.current) return;
+
+    const onPlayerStateChange = (event: any) => {
+      if (!isHost) return;
+
+      if (event.data === window.YT.PlayerState.PLAYING) {
+        onPlaybackChange('playing');
+      } else if (event.data === window.YT.PlayerState.PAUSED) {
+        onPlaybackChange('paused');
+      } else if (event.data === window.YT.PlayerState.ENDED) {
+        onEnded();
+      }
+    };
+
+    playerRef.current = new window.YT.Player(containerRef.current, {
+      videoId: ytId,
+      playerVars: {
+        autoplay: 1,
+        controls: 0,
+        disablekb: 1,
+        enablejsapi: 1,
+        modestbranding: 1,
+        origin: window.location.origin,
+        rel: 0,
+        mute: isHost ? 0 : 1
+      },
+      events: {
+        onReady: (event: any) => {
+          onDurationChange(event.target.getDuration());
+          event.target.seekTo(currentTime, true);
+          if (playbackState === 'playing') event.target.playVideo();
+          else event.target.pauseVideo();
+        },
+        onStateChange: onPlayerStateChange
+      }
+    });
+
+    return () => {
+      if (playerRef.current) {
+        playerRef.current.destroy();
+        playerRef.current = null;
+      }
+    };
+  }, [isApiReady, ytId, isHost]);
+
+  // Sync YouTube Player
+  useEffect(() => {
+    if (!playerRef.current || !isYouTube || !isApiReady) return;
+    const player = playerRef.current;
+
+    if (player.getPlayerState) {
+      const state = player.getPlayerState();
+      if (playbackState === 'playing' && state !== window.YT.PlayerState.PLAYING) {
+        player.playVideo();
+      } else if (playbackState === 'paused' && state !== window.YT.PlayerState.PAUSED) {
+        player.pauseVideo();
+      }
+
+      const drift = Math.abs(player.getCurrentTime() - currentTime);
+      if (drift > 2) {
+        player.seekTo(currentTime, true);
+      }
+    }
+  }, [playbackState, currentTime, isYouTube, isApiReady, volume, isMuted]);
+
+  // Track Volume Changes for YouTube
+  useEffect(() => {
+    if (playerRef.current?.setVolume && isYouTube) {
+      playerRef.current.setVolume(isMuted ? 0 : volume * 100);
+    }
+  }, [volume, isMuted, isYouTube]);
+
+  // Tracking Interval for Host (YouTube)
+  useEffect(() => {
+    if (!isHost || !isYouTube || !playerRef.current) return;
+
+    const interval = setInterval(() => {
+      if (playerRef.current?.getCurrentTime) {
+        onTimeUpdate(playerRef.current.getCurrentTime());
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isHost, isYouTube]);
 
   // Direct Video Handling
   useEffect(() => {
@@ -60,21 +179,20 @@ export const UniversalPlayer = ({
 
   if (isYouTube && ytId) {
     return (
-      <div className="absolute inset-0 bg-black flex flex-col items-center justify-center">
+      <div className="absolute inset-0 bg-black flex flex-col items-center justify-center overflow-hidden">
         <div className="w-full h-full relative">
-          <iframe
-            src={`https://www.youtube.com/embed/${ytId}?autoplay=1&controls=0&mute=${isHost ? 0 : 1}&origin=${window.location.origin}`}
-            className="w-full h-full border-0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
-          {/* Overlay to catch clicks and sync - note: complex sync for YT requires API, this is a placeholder/basic embed */}
-          <div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center mb-20">
+          <div ref={containerRef} className="w-full h-full" />
+          
+          {/* Controls Overlay Only for Hover */}
+          <div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center mb-20 pointer-events-none">
              <div className="bg-black/60 backdrop-blur-md p-4 rounded-2xl flex items-center gap-3">
                <YoutubeIcon className="w-6 h-6 text-[#FF0000]" />
                <p className="text-[11px] font-black text-white uppercase tracking-widest">YouTube Active Sync</p>
              </div>
           </div>
+
+          {/* Block YouTube related videos and overlays */}
+          <div className="absolute inset-0 z-0 bg-transparent" />
         </div>
       </div>
     );
@@ -97,7 +215,7 @@ export const UniversalPlayer = ({
           </p>
           <div className="bg-white/5 border border-white/5 p-4 rounded-2xl mb-8">
             <p className="text-[10px] text-[#0A84FF] font-black uppercase tracking-widest mb-2">Recommended fix</p>
-            <p className="text-[11px] text-gray-400">Past a direct .mp4 or .m3u8 link from a different provider, or use a YouTube link for full sync support.</p>
+            <p className="text-[11px] text-gray-400">Paste a direct .mp4 or .m3u8 link from a different provider, or use a YouTube link for full sync support.</p>
           </div>
           <button 
             onClick={() => window.open(videoUrl || '#', '_blank')}
@@ -114,11 +232,12 @@ export const UniversalPlayer = ({
     <video 
       ref={videoRef}
       src={videoUrl || "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"}
-      className="w-full h-full object-contain"
+      className="w-full h-full object-contain shadow-2xl"
       playsInline
-      muted={!isHost}
+      muted={isMuted || !isHost}
       onLoadedMetadata={() => {
         if (videoRef.current) {
+          videoRef.current.volume = volume;
           onDurationChange(videoRef.current.duration);
         }
       }}
@@ -133,16 +252,3 @@ export const UniversalPlayer = ({
     />
   );
 };
-
-const YoutubeIcon = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-  </svg>
-);
-
-const LockIcon = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-  </svg>
-);
