@@ -12,6 +12,8 @@ interface UniversalPlayerProps {
   onPlaybackChange: (state: 'playing' | 'paused') => void;
   onDurationChange: (duration: number) => void;
   onEnded: () => void;
+  onReady?: () => void;
+  onAutoplayBlocked?: () => void;
   volume?: number;
   isMuted?: boolean;
 }
@@ -33,6 +35,8 @@ export const UniversalPlayer = ({
   onPlaybackChange,
   onDurationChange,
   onEnded,
+  onReady,
+  onAutoplayBlocked,
   volume = 1,
   isMuted = false
 }: UniversalPlayerProps) => {
@@ -60,14 +64,27 @@ export const UniversalPlayer = ({
     if (!isYouTube || ytId === null) return;
 
     if (!window.YT) {
-      const tag = document.createElement('script');
-      tag.src = "https://www.youtube.com/iframe_api";
-      const firstScriptTag = document.getElementsByTagName('script')[0];
-      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+      // Check if tag already exists to prevent duplicates across fast navigations
+      if (!document.getElementById('youtube-iframe-api')) {
+        const tag = document.createElement('script');
+        tag.id = 'youtube-iframe-api';
+        tag.src = "https://www.youtube.com/iframe_api";
+        const firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+      }
+
+      const checkApi = setInterval(() => {
+        if (window.YT && window.YT.Player) {
+          setIsApiReady(true);
+          clearInterval(checkApi);
+        }
+      }, 100);
 
       window.onYouTubeIframeAPIReady = () => {
         setIsApiReady(true);
       };
+      
+      return () => clearInterval(checkApi);
     } else {
       setIsApiReady(true);
     }
@@ -105,8 +122,20 @@ export const UniversalPlayer = ({
         onReady: (event: any) => {
           onDurationChange(event.target.getDuration());
           event.target.seekTo(currentTime, true);
-          if (playbackState === 'playing') event.target.playVideo();
-          else event.target.pauseVideo();
+          
+          if (playbackState === 'playing') {
+            // Attempt autoplay
+            const playPromise = event.target.playVideo();
+            // YouTube doesn't always return a promise here, but we can check state
+            setTimeout(() => {
+              if (event.target.getPlayerState() !== window.YT.PlayerState.PLAYING && onAutoplayBlocked) {
+                onAutoplayBlocked();
+              }
+            }, 1000);
+          } else {
+            event.target.pauseVideo();
+          }
+          if (onReady) onReady();
         },
         onStateChange: onPlayerStateChange
       }
@@ -166,7 +195,11 @@ export const UniversalPlayer = ({
     const video = videoRef.current;
 
     if (playbackState === 'playing' && video.paused) {
-      video.play().catch(() => {});
+      video.play().catch((err) => {
+        if (err.name === 'NotAllowedError' && onAutoplayBlocked) {
+          onAutoplayBlocked();
+        }
+      });
     } else if (playbackState === 'paused' && !video.paused) {
       video.pause();
     }

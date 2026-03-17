@@ -64,6 +64,7 @@ export const WatchRoomView = ({ roomId, onBack }: { roomId: string, onBack: () =
   const [newQueueTitle, setNewQueueTitle] = useState('');
   const [hoverTime, setHoverTime] = useState<number | null>(null);
   const [isScrubbing, setIsScrubbing] = useState(false);
+  const [showAutoplayOverlay, setShowAutoplayOverlay] = useState(false);
   const initialSyncDone = useRef(false);
 
   useEffect(() => {
@@ -78,11 +79,18 @@ export const WatchRoomView = ({ roomId, onBack }: { roomId: string, onBack: () =
         const data = { id: document.id, ...document.data() } as Room;
         setRoom(data);
         
-        // Track local time for Guests only when drifting significantly
+        // Track local time for Guests with latency compensation
         if (!isHost) {
-          const drift = Math.abs(localCurrentTime - data.currentTime);
-          if (drift > 5) { // Loosened drift threshold for better performance
-            setLocalCurrentTime(data.currentTime);
+          const lastUpdated = data.lastUpdated?.toDate?.()?.getTime() || Date.now();
+          const now = Date.now();
+          const latencyMillis = now - lastUpdated;
+          const compensatedTime = data.playbackState === 'playing' 
+            ? data.currentTime + (latencyMillis / 1000)
+            : data.currentTime;
+
+          const drift = Math.abs(localCurrentTime - compensatedTime);
+          if (drift > 3) { // tighter threshold with compensation
+            setLocalCurrentTime(compensatedTime);
           }
         }
       }
@@ -284,6 +292,8 @@ export const WatchRoomView = ({ roomId, onBack }: { roomId: string, onBack: () =
           playbackState={room.playbackState}
           currentTime={localCurrentTime}
           isHost={isHost}
+          onReady={() => setIsSyncing(false)}
+          onAutoplayBlocked={() => !isHost && setShowAutoplayOverlay(true)}
           onTimeUpdate={async (time) => {
             setLocalCurrentTime(time);
             if (isHost && Math.abs(time - room.currentTime) > 2) {
@@ -302,6 +312,7 @@ export const WatchRoomView = ({ roomId, onBack }: { roomId: string, onBack: () =
               try {
                 await updateDoc(doc(db, 'rooms', roomId), { 
                   playbackState: state,
+                  currentTime: localCurrentTime,
                   lastUpdated: serverTimestamp()
                 });
               } catch (e) {
@@ -327,6 +338,36 @@ export const WatchRoomView = ({ roomId, onBack }: { roomId: string, onBack: () =
             >
               <div className="w-12 h-12 border-4 border-[#0A84FF] border-t-transparent rounded-full animate-spin mb-4" />
               <p className="text-sm font-medium text-gray-400">Syncing with host...</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {showAutoplayOverlay && !isSyncing && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-xl flex flex-col items-center justify-center z-20 transition-all"
+            >
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  setShowAutoplayOverlay(false);
+                  // Trigger a local state touch to satisfy browser autoplay requirements
+                  setVolume(v => v); 
+                }}
+                className="group relative flex flex-col items-center gap-6"
+              >
+                <div className="w-24 h-24 bg-white text-black rounded-full flex items-center justify-center shadow-[0_0_50px_rgba(255,255,255,0.3)] group-hover:shadow-[0_0_70px_rgba(255,255,255,0.5)] transition-all">
+                  <Play className="w-10 h-10 fill-black ml-1.5" />
+                </div>
+                <div className="text-center">
+                  <h3 className="text-xl font-black text-white uppercase tracking-tighter mb-2">Join the Party</h3>
+                  <p className="text-[11px] text-gray-400 font-bold uppercase tracking-[0.2em]">Click to unmute & start syncing</p>
+                </div>
+              </motion.button>
             </motion.div>
           )}
         </AnimatePresence>

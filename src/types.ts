@@ -36,6 +36,8 @@ export interface Room {
   platform?: string;
   participantsCount: number;
   createdAt: any;
+  lastUpdated?: any; // serverTimestamp
+  playbackBaseTime?: number; // The currentTime when playbackState last changed to 'playing'
   currentMedia?: string;
   playbackState: 'playing' | 'paused';
   currentTime: number;
