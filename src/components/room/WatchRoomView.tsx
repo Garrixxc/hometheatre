@@ -17,7 +17,8 @@ import {
   Send,
   ListPlus,
   GripVertical,
-  X
+  X,
+  Share2
 } from 'lucide-react';
 import { 
   doc, 
@@ -317,21 +318,76 @@ export const WatchRoomView = ({ roomId, onBack }: { roomId: string, onBack: () =
     }
   };
 
-  const handlePlayNext = async () => {
-    if (!isHost || !room?.queue || room.queue.length === 0) return;
-    const nextItem = room.queue[0];
-    const remainingQueue = room.queue.slice(1);
+  const handlePlayItem = async (item: QueueItem) => {
+    if (!isHost) return;
+    
+    // Remove the item from queue if it exists there
+    const newQueue = room?.queue?.filter(i => i.id !== item.id) || [];
+    
     try {
       await updateDoc(doc(db, 'rooms', roomId), {
-        videoUrl: nextItem.videoUrl,
-        title: nextItem.title,
+        videoUrl: item.videoUrl,
+        title: item.title,
         currentTime: 0,
         playbackState: 'playing',
-        queue: remainingQueue
+        queue: newQueue,
+        lastUpdated: serverTimestamp()
       });
     } catch (e) {
       handleFirestoreError(e, OperationType.UPDATE, `rooms/${roomId}`);
     }
+  };
+
+  const handlePlayNext = async () => {
+    if (!isHost) return;
+
+    // 1. If queue has items, play the first one
+    if (room?.queue && room.queue.length > 0) {
+      const nextItem = room.queue[0];
+      handlePlayItem(nextItem);
+      return;
+    }
+
+    // 2. If queue is empty, try Autoplay (fetch related video)
+    const API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
+    const extractId = (url: string) => {
+      const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+      const match = url.match(regExp);
+      return (match && match[2].length === 11) ? match[2] : null;
+    };
+
+    const currentId = room?.videoUrl ? extractId(room.videoUrl) : null;
+    if (API_KEY && currentId) {
+      try {
+        const response = await fetch(
+          `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&relatedToVideoId=${currentId}&type=video&key=${API_KEY}`
+        );
+        const data = await response.json();
+        if (data.items && data.items.length > 0) {
+          const next = data.items[0];
+          const nextItem: QueueItem = {
+            id: Math.random().toString(36).substr(2, 9),
+            title: next.snippet.title,
+            videoUrl: `https://www.youtube.com/watch?v=${next.id.videoId}`,
+            thumbnail: next.snippet.thumbnails.medium?.url || next.snippet.thumbnails.default?.url
+          };
+          
+          await updateDoc(doc(db, 'rooms', roomId), {
+            videoUrl: nextItem.videoUrl,
+            title: nextItem.title,
+            currentTime: 0,
+            playbackState: 'playing',
+            lastUpdated: serverTimestamp()
+          });
+          return;
+        }
+      } catch (err) {
+        console.error('Autoplay Error:', err);
+      }
+    }
+
+    // 3. Last fallback: just reset or do nothing
+    console.log("No next video found for autoplay");
   };
 
   const handleRemoveFromQueue = async (itemId: string) => {
@@ -623,15 +679,29 @@ export const WatchRoomView = ({ roomId, onBack }: { roomId: string, onBack: () =
                 <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Up Next ({room.queue?.length || 0})</p>
                 <Reorder.Group axis="y" values={room.queue || []} onReorder={handleReorder} className="space-y-3">
                   {room.queue?.map(item => (
-                    <Reorder.Item key={item.id} value={item} className="bg-black/40 border border-white/5 p-3 rounded-2xl flex items-center gap-4 group">
-                      <div className="w-20 h-12 bg-gray-900 rounded-lg overflow-hidden flex-none">
-                        <img src={item.thumbnail} className="w-full h-full object-cover" alt="" />
+                    <Reorder.Item 
+                      key={item.id} 
+                      value={item} 
+                      className="bg-black/40 border border-white/5 p-3 rounded-2xl flex items-center gap-4 group cursor-pointer hover:border-[#0A84FF]/30 transition-all"
+                      onClick={() => isHost && handlePlayItem(item)}
+                    >
+                      <div className="relative w-20 h-12 bg-gray-900 rounded-lg overflow-hidden flex-none">
+                        <img src={item.thumbnail} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt="" />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                          <Play className="w-4 h-4 text-white fill-white" />
+                        </div>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[11px] font-black text-white truncate uppercase">{item.title}</p>
+                        <p className="text-[11px] font-black text-white truncate uppercase group-hover:text-[#0A84FF] transition-colors">{item.title}</p>
                         <p className="text-[9px] text-gray-600 truncate">{item.videoUrl}</p>
                       </div>
-                      <button onClick={() => handleRemoveFromQueue(item.id)} className="p-2 text-gray-600 hover:text-red-500 transition-colors">
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveFromQueue(item.id);
+                        }} 
+                        className="p-2 text-gray-600 hover:text-red-500 transition-colors"
+                      >
                         <X className="w-4 h-4" />
                       </button>
                     </Reorder.Item>
