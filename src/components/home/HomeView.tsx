@@ -7,7 +7,15 @@ import { Room } from '../../types';
 import { handleFirestoreError, OperationType } from '../../lib/error';
 import { Header, LoadingSpinner } from '../common/UI';
 
-export const HomeView = ({ onJoinRoom }: { onJoinRoom: (roomId: string) => void }) => {
+import { View } from '../../types';
+
+export const HomeView = ({ 
+  onJoinRoom, 
+  setView 
+}: { 
+  onJoinRoom: (roomId: string) => void,
+  setView: (view: View) => void
+}) => {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -25,8 +33,18 @@ export const HomeView = ({ onJoinRoom }: { onJoinRoom: (roomId: string) => void 
   }, []);
 
   return (
-    <div className="pb-24">
-      <Header title="HomeTheatre" />
+    <div className="pb-32 bg-background">
+      <Header 
+        title="HomeTheatre" 
+        rightElement={
+          <button 
+            onClick={() => setView('sources')}
+            className="bg-[#0A84FF] text-white text-[10px] font-black px-4 py-2 rounded-xl uppercase tracking-tighter shadow-lg shadow-[#0A84FF]/20"
+          >
+            Create Room
+          </button>
+        }
+      />
       <div className="px-4 mb-6">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />

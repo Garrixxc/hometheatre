@@ -53,7 +53,10 @@ const AppContent = () => {
       <AnimatePresence mode="wait">
         {view === 'home' && (
           <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <HomeView onJoinRoom={(id) => { setActiveRoomId(id); setView('watch'); }} />
+            <HomeView 
+              onJoinRoom={(id) => { setActiveRoomId(id); setView('watch'); }} 
+              setView={setView}
+            />
             <BottomNav activeView={view} setView={setView} notificationCount={pendingInvitations.length} />
           </motion.div>
         )}

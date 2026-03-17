@@ -41,6 +41,7 @@ import { RoomSettingsModal } from './RoomSettingsModal';
 import { InviteModal } from './InviteModal';
 import { MessageItem } from './MessageItem';
 import { AICompanion } from './AICompanion';
+import { UniversalPlayer } from './UniversalPlayer';
 
 export const WatchRoomView = ({ roomId, onBack }: { roomId: string, onBack: () => void }) => {
   const { user } = useContext(AuthContext);
@@ -327,36 +328,19 @@ export const WatchRoomView = ({ roomId, onBack }: { roomId: string, onBack: () =
   return (
     <div className="h-screen flex flex-col bg-black overflow-hidden">
       <section className="relative w-full aspect-video bg-black flex items-center justify-center group">
-        <video 
-          ref={videoRef}
-          src={room.videoUrl || "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"}
-          className="w-full h-full object-contain"
-          playsInline
-          muted={!isHost}
-          onLoadedMetadata={() => {
-            if (videoRef.current) {
-              setDuration(videoRef.current.duration);
-            }
-            if (!isHost && room && !initialSyncDone.current) {
-              videoRef.current!.currentTime = room.currentTime;
-              if (room.playbackState === 'playing') {
-                videoRef.current!.play().catch(() => {});
-              }
-              initialSyncDone.current = true;
-              setIsSyncing(false);
-            }
+        <UniversalPlayer 
+          videoUrl={room.videoUrl}
+          platform={room.platform || 'movie'}
+          playbackState={room.playbackState}
+          currentTime={localCurrentTime}
+          isHost={isHost}
+          onTimeUpdate={(time) => {
+            setLocalCurrentTime(time);
           }}
-          onTimeUpdate={() => {
-            if (videoRef.current) {
-              setLocalCurrentTime(videoRef.current.currentTime);
-            }
+          onPlaybackChange={(state) => {
+            if (isHost) updateDoc(doc(db, 'rooms', roomId), { playbackState: state });
           }}
-          onPlay={() => {
-            if (isHost) updateDoc(doc(db, 'rooms', roomId), { playbackState: 'playing' });
-          }}
-          onPause={() => {
-            if (isHost) updateDoc(doc(db, 'rooms', roomId), { playbackState: 'paused' });
-          }}
+          onDurationChange={(d) => setDuration(d)}
           onEnded={() => {
             if (isHost) handlePlayNext();
           }}

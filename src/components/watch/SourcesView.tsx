@@ -31,16 +31,15 @@ export const SourcesView = ({
   const [roomVideoUrl, setRoomVideoUrl] = useState('');
 
   const sources = [
-    { id: 'netflix', name: 'Netflix', icon: <Film className="w-6 h-6" />, color: 'bg-[#E50914]' },
-    { id: 'youtube', name: 'YouTube', icon: <Youtube className="w-6 h-6" />, color: 'bg-[#FF0000]' },
-    { id: 'disney', name: 'Disney+', icon: <Play className="w-6 h-6" />, color: 'bg-[#006E99]' },
-    { id: 'prime', name: 'Prime Video', icon: <Play className="w-6 h-6" />, color: 'bg-[#00A8E1]' },
-    { id: 'hulu', name: 'Hulu', icon: <Play className="w-6 h-6" />, color: 'bg-[#1CE783]' },
-    { id: 'hbo', name: 'HBO Max', icon: <Film className="w-6 h-6" />, color: 'bg-[#0051FF]' },
-    { id: 'twitch', name: 'Twitch', icon: <HardDrive className="w-6 h-6" />, color: 'bg-[#6441A5]' },
-    { id: 'crunchyroll', name: 'Crunchyroll', icon: <Play className="w-6 h-6" />, color: 'bg-[#F47521]' },
-    { id: 'gaming', name: 'Gaming', icon: <HardDrive className="w-6 h-6" />, color: 'bg-[#333333]' },
-    { id: 'movie', name: 'Local File', icon: <Film className="w-6 h-6" />, color: 'bg-card' },
+    { id: 'youtube', name: 'YouTube', icon: <Youtube className="w-8 h-8" />, color: 'bg-[#FF0000]' },
+    { id: 'hotstar', name: 'Hotstar', icon: <Play className="w-8 h-8" />, color: 'bg-[#01147C]' },
+    { id: 'netflix', name: 'Netflix', icon: <Film className="w-8 h-8" />, color: 'bg-[#E50914]' },
+    { id: 'disney', name: 'Disney+', icon: <Play className="w-8 h-8" />, color: 'bg-[#006E99]' },
+    { id: 'prime', name: 'Prime Video', icon: <Play className="w-8 h-8" />, color: 'bg-[#00A8E1]' },
+    { id: 'hulu', name: 'Hulu', icon: <Play className="w-8 h-8" />, color: 'bg-[#1CE783]' },
+    { id: 'twitch', name: 'Twitch', icon: <HardDrive className="w-8 h-8" />, color: 'bg-[#6441A5]' },
+    { id: 'crunchyroll', name: 'Crunchyroll', icon: <Play className="w-8 h-8" />, color: 'bg-[#F47521]' },
+    { id: 'movie', name: 'Direct Link', icon: <HardDrive className="w-8 h-8" />, color: 'bg-white/10' },
   ];
 
   const filteredSources = sources.filter(s => 
@@ -71,91 +70,118 @@ export const SourcesView = ({
   };
 
   return (
-    <div className="pb-24">
-      <Header title="Watch" showBack onBack={() => setView('watch')} />
+    <div className="pb-32 bg-background min-h-screen">
+      <Header title="Watch Party" showBack onBack={() => setView('watch')} />
       
-      <div className="px-4 mt-4">
+      <div className="px-6 mt-8">
         {!selectedSource ? (
           <>
-            <div className="relative mb-6">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+            <div className="relative mb-8">
+              <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
               <input 
                 type="text" 
                 placeholder="Search platforms..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-card pl-10 pr-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#0A84FF]"
+                className="w-full bg-[#1c1c1e] pl-14 pr-6 py-4 rounded-[2rem] text-sm text-white focus:outline-none focus:ring-4 focus:ring-[#0A84FF]/10 transition-all border border-white/5"
               />
             </div>
 
-            <h2 className="text-lg font-bold mb-4">Select Source</h2>
+            <h2 className="text-[11px] font-black text-gray-500 uppercase tracking-[0.2em] mb-6 px-4">Select Source</h2>
             <div className="grid grid-cols-2 gap-4">
               {filteredSources.map(source => (
-                <button 
+                <motion.button 
                   key={source.id}
+                  whileHover={{ y: -4 }}
+                  whileTap={{ scale: 0.95 }}
                   onClick={() => {
                     setSelectedSource(source);
                     setRoomTitle(`${source.name} Party`);
                   }}
                   className={cn(
-                    "flex flex-col items-center justify-center p-6 rounded-2xl gap-3 transition-transform active:scale-95",
-                    source.color
+                    "flex flex-col items-center justify-center p-8 rounded-[2.5rem] gap-4 transition-all border shadow-xl",
+                    source.id === 'movie' ? "bg-white/5 border-white/10" : `${source.color} border-white/10`
                   )}
                 >
-                  {source.icon}
-                  <span className="text-xs font-bold">{source.name}</span>
-                </button>
+                  <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center shadow-inner">
+                    {source.icon}
+                  </div>
+                  <span className="text-[11px] font-black uppercase tracking-widest text-white">{source.name}</span>
+                </motion.button>
               ))}
             </div>
           </>
         ) : (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mt-10 text-center">
-            <div className={cn("w-20 h-20 rounded-3xl mx-auto flex items-center justify-center mb-6", selectedSource.color)}>
-              {selectedSource.icon}
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="mt-8">
+            <div className="text-center mb-10">
+              <div className={cn("w-24 h-24 rounded-[2.5rem] mx-auto flex items-center justify-center mb-6 shadow-2xl border-4 border-background ring-1 ring-white/10", selectedSource.color)}>
+                {selectedSource.icon}
+              </div>
+              <h2 className="text-3xl font-black text-white mb-2 leading-tight">Start {selectedSource.name} Room</h2>
+              <p className="text-gray-500 font-medium text-sm">Create a shared space for your friends.</p>
             </div>
-            <h2 className="text-2xl font-bold mb-2">Setup your {selectedSource.name} Room</h2>
-            <p className="text-gray-500 mb-8 text-sm">Give your watch party a name.</p>
             
-            <input 
-              type="text" 
-              value={roomTitle}
-              onChange={(e) => setRoomTitle(e.target.value)}
-              placeholder="Enter room title..."
-              className="w-full bg-card p-4 rounded-2xl text-center font-bold text-lg mb-4 focus:outline-none focus:ring-2 focus:ring-[#0A84FF]"
-              autoFocus
-            />
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-4">Room Title</label>
+                <input 
+                  type="text" 
+                  value={roomTitle}
+                  onChange={(e) => setRoomTitle(e.target.value)}
+                  placeholder="e.g. Movie Night with Friends"
+                  className="w-full bg-[#1c1c1e] p-6 rounded-[2rem] font-bold text-white border border-white/5 focus:outline-none focus:border-[#0A84FF]/50 transition-all shadow-xl"
+                  autoFocus
+                />
+              </div>
 
-            <textarea 
-              value={roomDescription}
-              onChange={(e) => setRoomDescription(e.target.value)}
-              placeholder="Description (optional)"
-              className="w-full bg-card p-4 rounded-2xl text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-[#0A84FF] h-20 resize-none"
-            />
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-4">Description</label>
+                <textarea 
+                  value={roomDescription}
+                  onChange={(e) => setRoomDescription(e.target.value)}
+                  placeholder="What are we watching?"
+                  className="w-full bg-[#1c1c1e] p-6 rounded-[2rem] text-sm text-white border border-white/5 focus:outline-none focus:border-[#0A84FF]/50 transition-all h-28 resize-none shadow-xl"
+                />
+              </div>
 
-            <div className="space-y-2 mb-8">
-              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block text-left px-2">Direct Video URL (Optional)</label>
-              <input 
-                type="url" 
-                value={roomVideoUrl}
-                onChange={(e) => setRoomVideoUrl(e.target.value)}
-                placeholder="https://example.com/video.mp4"
-                className="w-full bg-card p-4 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0A84FF]"
-              />
-              <p className="text-[10px] text-gray-600 text-left px-2">Leave empty to use the default demo video.</p>
+              <div className="space-y-3 bg-[#1c1c1e] p-6 rounded-[2.5rem] border border-white/5 shadow-2xl">
+                <div className="flex items-center justify-between px-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Video Source URL</label>
+                  <span className="text-[9px] bg-[#0A84FF]/20 text-[#0A84FF] px-2 py-0.5 rounded-full font-black">REQUIRED</span>
+                </div>
+                <input 
+                  type="url" 
+                  value={roomVideoUrl}
+                  onChange={(e) => setRoomVideoUrl(e.target.value)}
+                  placeholder={selectedSource.id === 'youtube' ? "https://youtube.com/watch?v=..." : "https://example.com/video.mp4"}
+                  className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-xs text-white focus:outline-none focus:border-[#0A84FF]/50 transition-all font-mono"
+                />
+                <div className="flex gap-2 px-2">
+                  <div className="w-1 h-1 bg-gray-600 rounded-full mt-1.5" />
+                  <p className="text-[10px] text-gray-550 leading-relaxed font-medium">
+                    {selectedSource.id === 'youtube' 
+                      ? "Paste a public YouTube video link. Everyone can watch it together." 
+                      : selectedSource.id === 'movie'
+                      ? "Use a direct link to an MP4 or M3U8 file. (CORS must be enabled)."
+                      : `For ${selectedSource.name}, we'll sync the experience using this link. Please ensure it's a direct resource link.`
+                    }
+                  </p>
+                </div>
+              </div>
             </div>
 
-            <div className="flex gap-3">
-              <button 
-                onClick={() => setSelectedSource(null)}
-                className="flex-1 bg-card py-4 rounded-2xl font-bold"
-              >
-                Back
-              </button>
+            <div className="flex flex-col gap-4 mt-12 pb-12">
               <button 
                 onClick={handleCreateRoom}
-                className="flex-[2] bg-[#0A84FF] py-4 rounded-2xl font-bold text-white"
+                className="w-full bg-[#0A84FF] py-5 rounded-[2rem] font-black text-white shadow-2xl shadow-[#0A84FF]/30 hover:scale-[1.02] active:scale-95 transition-all text-sm uppercase tracking-widest"
               >
-                Start Party
+                Launch Watch Room
+              </button>
+              <button 
+                onClick={() => setSelectedSource(null)}
+                className="w-full bg-white/5 py-5 rounded-[2rem] font-black text-gray-400 hover:text-white transition-all text-xs uppercase tracking-widest"
+              >
+                Change Platform
               </button>
             </div>
           </motion.div>
