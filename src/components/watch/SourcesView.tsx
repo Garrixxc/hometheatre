@@ -14,6 +14,7 @@ import { View } from '../../types';
 import { handleFirestoreError, OperationType } from '../../lib/error';
 import { Header } from '../common/UI';
 import { cn } from '../../lib/utils';
+import { YouTubeDiscovery } from './YouTubeDiscovery';
 
 export const SourcesView = ({ 
   user, 
@@ -30,14 +31,6 @@ export const SourcesView = ({
   const [roomDescription, setRoomDescription] = useState('');
   const [roomVideoUrl, setRoomVideoUrl] = useState('');
   const [isSearchingYouTube, setIsSearchingYouTube] = useState(false);
-  const [ytSearchQuery, setYtSearchQuery] = useState('');
-
-  const trendingVideos = [
-    { id: 'aqz-KE-bpKQ', title: 'Big Buck Bunny', thumbnail: 'https://img.youtube.com/vi/aqz-KE-bpKQ/maxresdefault.jpg', author: 'Blender' },
-    { id: 'YE7VzlLtp-4', title: 'Sintel', thumbnail: 'https://img.youtube.com/vi/YE7VzlLtp-4/maxresdefault.jpg', author: 'Blender Foundation' },
-    { id: 'T2wqeK-C2I0', title: 'Tears of Steel', thumbnail: 'https://img.youtube.com/vi/T2wqeK-C2I0/maxresdefault.jpg', author: 'Blender' },
-    { id: 'X5XNUP4_fG0', title: 'Elephant\'s Dream', thumbnail: 'https://img.youtube.com/vi/X5XNUP4_fG0/maxresdefault.jpg', author: 'Orange Open Movie Team' },
-  ];
 
   const sources = [
     { id: 'youtube', name: 'YouTube', icon: <Youtube className="w-8 h-8" />, color: 'bg-[#FF0000]' },
@@ -130,59 +123,17 @@ export const SourcesView = ({
             </div>
           </>
         ) : selectedSource.id === 'youtube' && isSearchingYouTube ? (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-             <div className="relative mb-8">
-              <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-              <input 
-                type="text" 
-                placeholder="Search YouTube videos..." 
-                value={ytSearchQuery}
-                onChange={(e) => setYtSearchQuery(e.target.value)}
-                className="w-full bg-[#1c1c1e] pl-14 pr-6 py-4 rounded-[2rem] text-sm text-white focus:outline-none focus:ring-4 focus:ring-[#0A84FF]/10 transition-all border border-white/5"
-              />
-            </div>
-
-            <div className="flex items-center justify-between mb-6 px-2">
-              <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em]">Trending on YouTube</h3>
-              <button className="text-[10px] font-black text-[#0A84FF] uppercase tracking-widest">See All</button>
-            </div>
-
-            <div className="grid grid-cols-1 gap-6">
-              {trendingVideos.map(video => (
-                <motion.div 
-                  key={video.id}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => {
-                    setRoomVideoUrl(`https://www.youtube.com/watch?v=${video.id}`);
-                    setRoomTitle(video.title);
-                    setIsSearchingYouTube(false);
-                  }}
-                  className="bg-[#1c1c1e] rounded-[2rem] overflow-hidden cursor-pointer border border-white/5 shadow-2xl group"
-                >
-                  <div className="relative aspect-video">
-                    <img src={video.thumbnail} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={video.title} />
-                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-colors" />
-                    <div className="absolute bottom-4 right-4 bg-black/80 backdrop-blur-md px-2 py-1 rounded-lg text-[10px] font-black text-white">4:20</div>
-                  </div>
-                  <div className="p-6">
-                    <h4 className="font-bold text-white mb-2 line-clamp-2">{video.title}</h4>
-                    <p className="text-xs text-gray-500 font-medium">{video.author} • 1.2M views</p>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-
-            <div className="mt-12 text-center">
-              <p className="text-[10px] text-gray-600 font-black uppercase tracking-widest mb-4">Or paste a direct link</p>
-              <button 
-                onClick={() => setIsSearchingYouTube(false)}
-                className="text-sm font-bold text-[#0A84FF] hover:underline"
-              >
-                Use custom URL
-              </button>
-            </div>
-          </motion.div>
+          <YouTubeDiscovery 
+            onSelect={(video) => {
+              if (video.id === 'custom') {
+                setIsSearchingYouTube(false);
+              } else {
+                setRoomVideoUrl(`https://www.youtube.com/watch?v=${video.id}`);
+                setRoomTitle(video.title);
+                setIsSearchingYouTube(false);
+              }
+            }} 
+          />
         ) : (
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="mt-8">
             <div className="text-center mb-10">
