@@ -32,6 +32,7 @@ export const SourcesView = ({
   const [roomVideoUrl, setRoomVideoUrl] = useState('');
   const [isSearchingYouTube, setIsSearchingYouTube] = useState(false);
 
+  const sources = [
     { 
       id: 'youtube', 
       name: 'YouTube', 
@@ -157,6 +158,7 @@ export const SourcesView = ({
                     {source.logo === "direct" ? (
                       <HardDrive className="w-12 h-12 text-white opacity-40" />
                     ) : (
+                      <img 
                         src={source.logo} 
                         alt={source.name} 
                         className="max-w-full max-h-12 object-contain filter brightness-0 invert opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500" 
