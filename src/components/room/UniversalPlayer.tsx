@@ -216,11 +216,11 @@ export const UniversalPlayer = ({
         <div className="w-full h-full relative">
           <div ref={containerRef} className="w-full h-full" />
           
-          {/* Controls Overlay Only for Hover */}
-          <div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center mb-20 pointer-events-none">
-             <div className="bg-black/60 backdrop-blur-md p-4 rounded-2xl flex items-center gap-3">
-               <YoutubeIcon className="w-6 h-6 text-[#FF0000]" />
-               <p className="text-[11px] font-black text-white uppercase tracking-widest">YouTube Active Sync</p>
+          {/* Controls Overlay - Repositioned to corner */}
+          <div className="absolute top-6 right-6 z-10 pointer-events-none">
+             <div className="bg-black/40 backdrop-blur-xl px-3 py-1.5 rounded-full flex items-center gap-2 border border-white/5 opacity-60 group-hover:opacity-100 transition-opacity">
+               <YoutubeIcon className="w-3 h-3 text-[#FF0000]" />
+               <p className="text-[8px] font-black text-white uppercase tracking-[0.2em]">Live Sync</p>
              </div>
           </div>
 
