@@ -1,0 +1,229 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: userId (Firebase Auth UID)
+    // Fields:
+    //   - uid: string (required)
+    //   - displayName: string (optional)
+    //   - email: string (required)
+    //   - photoURL: string (optional)
+    //   - status: string (enum: ['online', 'offline'])
+    //   - lastSeen: timestamp
+    //   - subscriptions: list (optional)
+    //
+    // Collection: rooms
+    // Document ID: roomId (Auto-generated)
+    // Fields:
+    //   - title: string (required, max 100)
+    //   - description: string (optional, max 500)
+    //   - hostId: string (required, immutable)
+    //   - hostName: string (required)
+    //   - thumbnail: string (optional)
+    //   - type: string (enum: ['movie', 'gaming', 'youtube', 'netflix', 'disney', 'prime'])
+    //   - platform: string (optional)
+    //   - participantsCount: number (required)
+    //   - createdAt: timestamp (required, immutable)
+    //   - currentMedia: string (optional)
+    //   - playbackState: string (enum: ['playing', 'paused'])
+    //   - currentTime: number (required)
+    //
+    // Collection: rooms/{roomId}/messages
+    // Document ID: messageId (Auto-generated)
+    // Fields:
+    //   - text: string (required, max 1000)
+    //   - senderId: string (required, immutable)
+    //   - senderName: string (required)
+    //   - senderAvatar: string (optional)
+    //   - timestamp: timestamp (required, immutable)
+    //   - type: string (enum: ['message', 'system'])
+    //
+    // Collection: activity
+    // Document ID: activityId (Auto-generated)
+    // Fields:
+    //   - userId: string (required, immutable)
+    //   - userName: string (required)
+    //   - userAvatar: string (optional)
+    //   - action: string (required)
+    //   - target: string (required)
+    //   - comment: string (optional, max 500)
+    //   - thumbnail: string (optional)
+    //   - timestamp: timestamp (required, immutable)
+    //
+    // Collection: invitations
+    // Document ID: invitationId (Auto-generated)
+    // Fields:
+    //   - fromId: string (required, immutable)
+    //   - fromName: string (required)
+    //   - toId: string (required, immutable)
+    //   - roomId: string (required, immutable)
+    //   - roomTitle: string (optional)
+    //   - status: string (enum: ['pending', 'accepted', 'declined'])
+    //   - timestamp: timestamp (required, immutable)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.uid;
+    }
+
+    function uidUnchanged() {
+      return !('uid' in request.resource.data) || request.resource.data.uid == request.auth.uid;
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidEmail(email) {
+      return email == null || (email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"));
+    }
+
+    function isValidUrl(url) {
+      return url == null || (url is string && (url.matches("^https://.*") || url.matches("^http://.*")));
+    }
+
+    function isValidOptionalString(data, field, maxLen) {
+      return !(field in data) || data[field] == null || (data[field] is string && data[field].size() <= maxLen);
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+        (request.auth.token.email == "gaurav.salvi411@gmail.com" && request.auth.token.email_verified == true)
+      );
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUser(data) {
+      let allowedFields = ['uid', 'displayName', 'email', 'photoURL', 'status', 'lastSeen', 'role', 'subscriptions'];
+      return data.keys().hasOnly(allowedFields) &&
+             data.uid == request.auth.uid &&
+             (data.status in ['online', 'offline']) &&
+             (!('email' in data) || data.email == null || (data.email is string && data.email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"))) &&
+             (!('displayName' in data) || data.displayName == null || (data.displayName is string && data.displayName.size() <= 100)) &&
+             (!('photoURL' in data) || data.photoURL == null || (data.photoURL is string && data.photoURL.matches("^https?://.*"))) &&
+             (!('lastSeen' in data) || data.lastSeen is timestamp) &&
+             (!('role' in data) || (data.role in ['admin', 'user'])) &&
+             (!('subscriptions' in data) || data.subscriptions is list);
+    }
+
+    function isValidRoom(data) {
+      return hasOnlyAllowedFields(['title', 'description', 'hostId', 'hostName', 'thumbnail', 'type', 'platform', 'participantsCount', 'createdAt', 'currentMedia', 'playbackState', 'currentTime', 'lastUpdated', 'videoUrl', 'mutedUsers', 'kickedUsers', 'queue']) &&
+             hasRequiredFields(['title', 'hostId', 'hostName', 'participantsCount', 'createdAt', 'currentTime']) &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 100 &&
+             isValidOptionalString(data, 'description', 500) &&
+             (data.hostId == request.auth.uid || isAdmin()) &&
+             data.participantsCount is number &&
+             data.createdAt is timestamp &&
+             data.currentTime is number &&
+             (data.type in ['movie', 'gaming', 'youtube', 'netflix', 'disney', 'prime', 'hulu', 'hbo', 'twitch', 'crunchyroll']) &&
+             (!('platform' in data) || data.platform is string) &&
+             (!('playbackState' in data) || (data.playbackState in ['playing', 'paused'])) &&
+             (!('videoUrl' in data) || isValidUrl(data.videoUrl)) &&
+             (!('mutedUsers' in data) || data.mutedUsers is list) &&
+             (!('kickedUsers' in data) || data.kickedUsers is list) &&
+             (!('queue' in data) || data.queue is list);
+    }
+
+    function isValidMessage(data) {
+      return hasOnlyAllowedFields(['text', 'senderId', 'senderName', 'senderAvatar', 'timestamp', 'type']) &&
+             hasRequiredFields(['text', 'senderId', 'senderName', 'timestamp']) &&
+             data.text is string && data.text.size() > 0 && data.text.size() <= 1000 &&
+             data.senderId == request.auth.uid &&
+             data.timestamp is timestamp &&
+             (!('type' in data) || (data.type in ['message', 'system']));
+    }
+
+    function isValidActivity(data) {
+      return hasOnlyAllowedFields(['userId', 'userName', 'userAvatar', 'action', 'target', 'comment', 'thumbnail', 'timestamp']) &&
+             hasRequiredFields(['userId', 'userName', 'action', 'target', 'timestamp']) &&
+             data.userId == request.auth.uid &&
+             data.action is string &&
+             data.target is string &&
+             data.timestamp is timestamp &&
+             (!('comment' in data) || (data.comment is string && data.comment.size() <= 500));
+    }
+
+    function isValidInvitation(data) {
+      return hasOnlyAllowedFields(['fromId', 'fromName', 'toId', 'roomId', 'roomTitle', 'status', 'timestamp']) &&
+             hasRequiredFields(['fromId', 'toId', 'roomId', 'status', 'timestamp']) &&
+             data.fromId == request.auth.uid &&
+             data.status == 'pending' &&
+             data.timestamp is timestamp;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if (isOwner(userId) || isAdmin()) && isValidUser(request.resource.data) && 
+                      (isAdmin() || request.resource.data.get('role', null) == resource.data.get('role', null));
+    }
+
+    match /rooms/{roomId} {
+      allow read: if isAuthenticated() && !(request.auth.uid in resource.data.get('kickedUsers', []));
+      allow create: if isAuthenticated() && isValidRoom(request.resource.data);
+      allow update: if isAuthenticated() && isValidRoom(request.resource.data) &&
+                      (request.resource.data.hostId == resource.data.hostId || isAdmin()) &&
+                      (request.resource.data.createdAt == resource.data.createdAt || isAdmin());
+      allow delete: if isAuthenticated() && (resource.data.hostId == request.auth.uid || isAdmin());
+
+      match /messages/{messageId} {
+        allow read: if isAuthenticated() && !(request.auth.uid in get(/databases/$(database)/documents/rooms/$(roomId)).data.get('kickedUsers', []));
+        allow create: if isAuthenticated() && 
+                        !(request.auth.uid in get(/databases/$(database)/documents/rooms/$(roomId)).data.get('kickedUsers', [])) &&
+                        !(request.auth.uid in get(/databases/$(database)/documents/rooms/$(roomId)).data.get('mutedUsers', [])) &&
+                        isValidMessage(request.resource.data);
+        allow delete: if isAuthenticated() && (isAdmin() || get(/databases/$(database)/documents/rooms/$(roomId)).data.hostId == request.auth.uid);
+      }
+    }
+
+    match /activity/{activityId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidActivity(request.resource.data);
+    }
+
+    match /invitations/{invitationId} {
+      allow read: if isAuthenticated() && resource.data.fromId == request.auth.uid;
+      allow read: if isAuthenticated() && resource.data.toId == request.auth.uid;
+      allow create: if isAuthenticated() && isValidInvitation(request.resource.data);
+      allow update: if isAuthenticated() && 
+                      resource.data.toId == request.auth.uid && 
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']) &&
+                      request.resource.data.status in ['accepted', 'declined'];
+    }
+
+    // Default deny
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}
