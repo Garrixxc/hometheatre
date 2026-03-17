@@ -29,6 +29,15 @@ export const SourcesView = ({
   const [roomTitle, setRoomTitle] = useState('');
   const [roomDescription, setRoomDescription] = useState('');
   const [roomVideoUrl, setRoomVideoUrl] = useState('');
+  const [isSearchingYouTube, setIsSearchingYouTube] = useState(false);
+  const [ytSearchQuery, setYtSearchQuery] = useState('');
+
+  const trendingVideos = [
+    { id: 'aqz-KE-bpKQ', title: 'Big Buck Bunny', thumbnail: 'https://img.youtube.com/vi/aqz-KE-bpKQ/maxresdefault.jpg', author: 'Blender' },
+    { id: 'YE7VzlLtp-4', title: 'Sintel', thumbnail: 'https://img.youtube.com/vi/YE7VzlLtp-4/maxresdefault.jpg', author: 'Blender Foundation' },
+    { id: 'T2wqeK-C2I0', title: 'Tears of Steel', thumbnail: 'https://img.youtube.com/vi/T2wqeK-C2I0/maxresdefault.jpg', author: 'Blender' },
+    { id: 'X5XNUP4_fG0', title: 'Elephant\'s Dream', thumbnail: 'https://img.youtube.com/vi/X5XNUP4_fG0/maxresdefault.jpg', author: 'Orange Open Movie Team' },
+  ];
 
   const sources = [
     { id: 'youtube', name: 'YouTube', icon: <Youtube className="w-8 h-8" />, color: 'bg-[#FF0000]' },
@@ -71,7 +80,15 @@ export const SourcesView = ({
 
   return (
     <div className="pb-32 bg-background min-h-screen">
-      <Header title="Watch Party" showBack onBack={() => setView('watch')} />
+      <Header 
+        title={selectedSource?.id === 'youtube' ? "Youtube Discovery" : "Watch Party"} 
+        showBack 
+        onBack={() => {
+          if (isSearchingYouTube) setIsSearchingYouTube(false);
+          else if (selectedSource) setSelectedSource(null);
+          else setView('watch');
+        }} 
+      />
       
       <div className="px-6 mt-8">
         {!selectedSource ? (
@@ -97,6 +114,7 @@ export const SourcesView = ({
                   onClick={() => {
                     setSelectedSource(source);
                     setRoomTitle(`${source.name} Party`);
+                    if (source.id === 'youtube') setIsSearchingYouTube(true);
                   }}
                   className={cn(
                     "flex flex-col items-center justify-center p-8 rounded-[2.5rem] gap-4 transition-all border shadow-xl",
@@ -111,6 +129,60 @@ export const SourcesView = ({
               ))}
             </div>
           </>
+        ) : selectedSource.id === 'youtube' && isSearchingYouTube ? (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+             <div className="relative mb-8">
+              <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+              <input 
+                type="text" 
+                placeholder="Search YouTube videos..." 
+                value={ytSearchQuery}
+                onChange={(e) => setYtSearchQuery(e.target.value)}
+                className="w-full bg-[#1c1c1e] pl-14 pr-6 py-4 rounded-[2rem] text-sm text-white focus:outline-none focus:ring-4 focus:ring-[#0A84FF]/10 transition-all border border-white/5"
+              />
+            </div>
+
+            <div className="flex items-center justify-between mb-6 px-2">
+              <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em]">Trending on YouTube</h3>
+              <button className="text-[10px] font-black text-[#0A84FF] uppercase tracking-widest">See All</button>
+            </div>
+
+            <div className="grid grid-cols-1 gap-6">
+              {trendingVideos.map(video => (
+                <motion.div 
+                  key={video.id}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => {
+                    setRoomVideoUrl(`https://www.youtube.com/watch?v=${video.id}`);
+                    setRoomTitle(video.title);
+                    setIsSearchingYouTube(false);
+                  }}
+                  className="bg-[#1c1c1e] rounded-[2rem] overflow-hidden cursor-pointer border border-white/5 shadow-2xl group"
+                >
+                  <div className="relative aspect-video">
+                    <img src={video.thumbnail} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={video.title} />
+                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-colors" />
+                    <div className="absolute bottom-4 right-4 bg-black/80 backdrop-blur-md px-2 py-1 rounded-lg text-[10px] font-black text-white">4:20</div>
+                  </div>
+                  <div className="p-6">
+                    <h4 className="font-bold text-white mb-2 line-clamp-2">{video.title}</h4>
+                    <p className="text-xs text-gray-500 font-medium">{video.author} • 1.2M views</p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+
+            <div className="mt-12 text-center">
+              <p className="text-[10px] text-gray-600 font-black uppercase tracking-widest mb-4">Or paste a direct link</p>
+              <button 
+                onClick={() => setIsSearchingYouTube(false)}
+                className="text-sm font-bold text-[#0A84FF] hover:underline"
+              >
+                Use custom URL
+              </button>
+            </div>
+          </motion.div>
         ) : (
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="mt-8">
             <div className="text-center mb-10">
@@ -118,7 +190,7 @@ export const SourcesView = ({
                 {selectedSource.icon}
               </div>
               <h2 className="text-3xl font-black text-white mb-2 leading-tight">Start {selectedSource.name} Room</h2>
-              <p className="text-gray-500 font-medium text-sm">Create a shared space for your friends.</p>
+              <p className="text-gray-500 font-medium text-sm">Review your party details.</p>
             </div>
             
             <div className="space-y-6">
@@ -134,16 +206,6 @@ export const SourcesView = ({
                 />
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-4">Description</label>
-                <textarea 
-                  value={roomDescription}
-                  onChange={(e) => setRoomDescription(e.target.value)}
-                  placeholder="What are we watching?"
-                  className="w-full bg-[#1c1c1e] p-6 rounded-[2rem] text-sm text-white border border-white/5 focus:outline-none focus:border-[#0A84FF]/50 transition-all h-28 resize-none shadow-xl"
-                />
-              </div>
-
               <div className="space-y-3 bg-[#1c1c1e] p-6 rounded-[2.5rem] border border-white/5 shadow-2xl">
                 <div className="flex items-center justify-between px-2">
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Video Source URL</label>
@@ -156,14 +218,14 @@ export const SourcesView = ({
                   placeholder={selectedSource.id === 'youtube' ? "https://youtube.com/watch?v=..." : "https://example.com/video.mp4"}
                   className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-xs text-white focus:outline-none focus:border-[#0A84FF]/50 transition-all font-mono"
                 />
-                <div className="flex gap-2 px-2">
+                <div className="flex gap-2 px-2 mt-2">
                   <div className="w-1 h-1 bg-gray-600 rounded-full mt-1.5" />
-                  <p className="text-[10px] text-gray-550 leading-relaxed font-medium">
+                  <p className="text-[10px] text-gray-500 leading-relaxed font-medium">
                     {selectedSource.id === 'youtube' 
-                      ? "Paste a public YouTube video link. Everyone can watch it together." 
+                      ? "Everyone will see this YouTube video in sync." 
                       : selectedSource.id === 'movie'
-                      ? "Use a direct link to an MP4 or M3U8 file. (CORS must be enabled)."
-                      : `For ${selectedSource.name}, we'll sync the experience using this link. Please ensure it's a direct resource link.`
+                      ? "Direct MP4/M3U8 link required for sync playback."
+                      : `Syncing ${selectedSource.name}. Make sure everyone has an active account.`
                     }
                   </p>
                 </div>
@@ -171,6 +233,17 @@ export const SourcesView = ({
             </div>
 
             <div className="flex flex-col gap-4 mt-12 pb-12">
+              {['netflix', 'hotstar', 'disney', 'prime'].includes(selectedSource.id) && (
+                <div className="bg-[#FF9500]/10 border border-[#FF9500]/20 p-6 rounded-[2rem] mb-4 text-left">
+                  <p className="text-[10px] font-black text-[#FF9500] uppercase tracking-widest mb-2 flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 bg-[#FF9500] rounded-full" />
+                    External Platform Notice
+                  </p>
+                  <p className="text-[11px] text-gray-400 font-medium leading-relaxed">
+                    To watch {selectedSource.name} together, ensure all participants are logged into their own accounts on the official site. We'll sync the experience via the link provided.
+                  </p>
+                </div>
+              )}
               <button 
                 onClick={handleCreateRoom}
                 className="w-full bg-[#0A84FF] py-5 rounded-[2rem] font-black text-white shadow-2xl shadow-[#0A84FF]/30 hover:scale-[1.02] active:scale-95 transition-all text-sm uppercase tracking-widest"
@@ -178,7 +251,10 @@ export const SourcesView = ({
                 Launch Watch Room
               </button>
               <button 
-                onClick={() => setSelectedSource(null)}
+                onClick={() => {
+                  setSelectedSource(null);
+                  setIsSearchingYouTube(false);
+                }}
                 className="w-full bg-white/5 py-5 rounded-[2rem] font-black text-gray-400 hover:text-white transition-all text-xs uppercase tracking-widest"
               >
                 Change Platform
