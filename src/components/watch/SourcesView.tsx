@@ -33,15 +33,62 @@ export const SourcesView = ({
   const [isSearchingYouTube, setIsSearchingYouTube] = useState(false);
 
   const sources = [
-    { id: 'youtube', name: 'YouTube', icon: <Youtube className="w-8 h-8" />, color: 'bg-[#FF0000]' },
-    { id: 'hotstar', name: 'Hotstar', icon: <Play className="w-8 h-8" />, color: 'bg-[#01147C]' },
-    { id: 'netflix', name: 'Netflix', icon: <Film className="w-8 h-8" />, color: 'bg-[#E50914]' },
-    { id: 'disney', name: 'Disney+', icon: <Play className="w-8 h-8" />, color: 'bg-[#006E99]' },
-    { id: 'prime', name: 'Prime Video', icon: <Play className="w-8 h-8" />, color: 'bg-[#00A8E1]' },
-    { id: 'hulu', name: 'Hulu', icon: <Play className="w-8 h-8" />, color: 'bg-[#1CE783]' },
-    { id: 'twitch', name: 'Twitch', icon: <HardDrive className="w-8 h-8" />, color: 'bg-[#6441A5]' },
-    { id: 'crunchyroll', name: 'Crunchyroll', icon: <Play className="w-8 h-8" />, color: 'bg-[#F47521]' },
-    { id: 'movie', name: 'Direct Link', icon: <HardDrive className="w-8 h-8" />, color: 'bg-white/10' },
+    { 
+      id: 'youtube', 
+      name: 'YouTube', 
+      logo: "https://upload.wikimedia.org/wikipedia/commons/e/ef/Youtube_logo.png",
+      color: 'from-[#FF0000]/20 to-[#FF0000]/5',
+      accent: '#FF0000'
+    },
+    { 
+      id: 'netflix', 
+      name: 'Netflix', 
+      logo: "https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg",
+      color: 'from-[#E50914]/20 to-[#E50914]/5',
+      accent: '#E50914'
+    },
+    { 
+      id: 'hotstar', 
+      name: 'Hotstar', 
+      logo: "https://secure-media.hotstar.com/web-assets/prod/images/brand-logos/disney-hotstar-logo-dark.svg",
+      color: 'from-[#01147C]/20 to-[#01147C]/5',
+      accent: '#01147C'
+    },
+    { 
+      id: 'disney', 
+      name: 'Disney+', 
+      logo: "https://upload.wikimedia.org/wikipedia/commons/3/3e/Disney%2B_logo.svg",
+      color: 'from-[#006E99]/20 to-[#006E99]/5',
+      accent: '#006E99'
+    },
+    { 
+      id: 'prime', 
+      name: 'Prime Video', 
+      logo: "https://upload.wikimedia.org/wikipedia/commons/1/11/Amazon_Prime_Video_logo.svg",
+      color: 'from-[#00A8E1]/20 to-[#00A8E1]/5',
+      accent: '#00A8E1'
+    },
+    { 
+      id: 'twitch', 
+      name: 'Twitch', 
+      logo: "https://upload.wikimedia.org/wikipedia/commons/d/d3/Twitch_logo.svg",
+      color: 'from-[#6441A5]/20 to-[#6441A5]/5',
+      accent: '#6441A5'
+    },
+    { 
+      id: 'hulu', 
+      name: 'Hulu', 
+      logo: "https://upload.wikimedia.org/wikipedia/commons/e/e4/Hulu_Logo.svg",
+      color: 'from-[#1CE783]/20 to-[#1CE783]/5',
+      accent: '#1CE783'
+    },
+    { 
+      id: 'movie', 
+      name: 'MP4 Link', 
+      logo: "direct",
+      color: 'from-white/10 to-white/5',
+      accent: '#FFFFFF'
+    },
   ];
 
   const filteredSources = sources.filter(s => 
@@ -98,11 +145,14 @@ export const SourcesView = ({
             </div>
 
             <h2 className="text-[11px] font-black text-gray-500 uppercase tracking-[0.2em] mb-6 px-4">Select Source</h2>
-            <div className="grid grid-cols-2 gap-4">
-              {filteredSources.map(source => (
+            <div className="grid grid-cols-2 gap-6">
+              {filteredSources.map((source, idx) => (
                 <motion.button 
                   key={source.id}
-                  whileHover={{ y: -4 }}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.05 }}
+                  whileHover={{ y: -8, scale: 1.02 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => {
                     setSelectedSource(source);
@@ -110,14 +160,29 @@ export const SourcesView = ({
                     if (source.id === 'youtube') setIsSearchingYouTube(true);
                   }}
                   className={cn(
-                    "flex flex-col items-center justify-center p-8 rounded-[2.5rem] gap-4 transition-all border shadow-xl",
-                    source.id === 'movie' ? "bg-white/5 border-white/10" : `${source.color} border-white/10`
+                    "relative group h-48 flex flex-col items-center justify-center p-6 rounded-[3rem] gap-4 transition-all overflow-hidden",
+                    "bg-gradient-to-br border border-white/10 shadow-2xl",
+                    source.color
                   )}
                 >
-                  <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center shadow-inner">
-                    {source.icon}
+                  {/* Decorative background blast */}
+                  <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity blur-3xl -z-10" />
+                  
+                  <div className="w-full flex-1 flex items-center justify-center px-4">
+                    {source.logo === "direct" ? (
+                      <HardDrive className="w-12 h-12 text-white opacity-40" />
+                    ) : (
+                      <img 
+                        src={source.logo} 
+                        alt={source.name} 
+                        className="max-w-full max-h-12 object-contain filter brightness-0 invert opacity-40 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500" 
+                      />
+                    )}
                   </div>
-                  <span className="text-[11px] font-black uppercase tracking-widest text-white">{source.name}</span>
+                  
+                  <div className="mt-auto py-2 px-6 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10 group-hover:bg-white/20 transition-all">
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/80 group-hover:text-white">{source.name}</span>
+                  </div>
                 </motion.button>
               ))}
             </div>

@@ -129,34 +129,34 @@ export const YouTubeDiscovery = ({ onSelect }: YouTubeDiscoveryProps) => {
   return (
     <div className="flex flex-col h-full bg-background pb-32">
       {/* Search Header */}
-      <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-xl px-4 py-4 space-y-4">
+      <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-2xl px-6 py-6 space-y-6 border-b border-white/5">
         <div className="relative group">
-          <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-[#0A84FF] transition-colors" />
+          <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 group-focus-within:text-[#0A84FF] transition-colors" />
           <input 
             type="text" 
-            placeholder="Search YouTube..." 
+            placeholder="Search the global library..." 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-[#1c1c1e] pl-14 pr-6 py-4 rounded-[2rem] text-sm text-white focus:outline-none focus:ring-4 focus:ring-[#0A84FF]/10 transition-all border border-white/5 shadow-2xl"
+            className="w-full bg-[#1c1c1e] pl-16 pr-6 py-5 rounded-[2rem] text-sm text-white focus:outline-none focus:ring-4 focus:ring-[#0A84FF]/10 transition-all border border-white/5 shadow-2xl"
           />
           {isLoading && (
-            <div className="absolute right-6 top-1/2 -translate-y-1/2">
+            <div className="absolute right-8 top-1/2 -translate-y-1/2">
               <Loader2 className="w-5 h-5 text-[#0A84FF] animate-spin" />
             </div>
           )}
         </div>
 
         {/* Category Selector */}
-        <div className="flex overflow-x-auto no-scrollbar gap-2 pb-2">
+        <div className="flex overflow-x-auto no-scrollbar gap-3 pb-2">
           {CATEGORIES.map(cat => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
               className={cn(
-                "px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap border",
+                "px-6 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all whitespace-nowrap border",
                 selectedCategory === cat 
                   ? "bg-white text-black border-white shadow-xl scale-105" 
-                  : "bg-white/5 text-gray-400 border-white/5 hover:bg-white/10"
+                  : "bg-white/5 text-gray-500 border-white/5 hover:bg-white/10 hover:text-white"
               )}
             >
               {cat}
@@ -167,72 +167,74 @@ export const YouTubeDiscovery = ({ onSelect }: YouTubeDiscoveryProps) => {
 
       {/* API Warning if missing */}
       {!API_KEY && (
-        <div className="mx-4 mb-4 p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center gap-3">
-          <WifiOff className="w-5 h-5 text-amber-500" />
-          <p className="text-[10px] font-bold text-amber-500 uppercase tracking-widest">
-            Demo Mode: Real YouTube search requires an API Key in .env
+        <div className="mx-6 mt-6 p-4 bg-orange-500/10 border border-orange-500/20 rounded-[2rem] flex items-center gap-4">
+          <div className="w-10 h-10 bg-orange-500/20 rounded-2xl flex items-center justify-center flex-none">
+            <WifiOff className="w-5 h-5 text-orange-500" />
+          </div>
+          <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest leading-relaxed">
+            API Connection Required: Live YouTube search is disabled until an API Key is added to .env
           </p>
         </div>
       )}
 
       {/* Video Grid */}
-      <div className="px-4 mt-4 grid grid-cols-1 gap-8">
+      <div className="px-6 mt-8 grid grid-cols-1 gap-10">
         <AnimatePresence mode="popLayout">
           {videos.length > 0 ? (
             videos.map((video, idx) => (
               <motion.div
                 key={video.id + idx}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95 }}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
                 transition={{ delay: idx * 0.05 }}
                 onClick={() => onSelect(video)}
                 className="group cursor-pointer"
               >
                 {/* Thumbnail Wrapper */}
-                <div className="relative aspect-video rounded-3xl overflow-hidden mb-4 bg-white/5 shadow-2xl ring-1 ring-white/5 group-hover:ring-white/10 transition-all">
+                <div className="relative aspect-video rounded-[3rem] overflow-hidden mb-6 bg-[#1c1c1e] shadow-2xl ring-1 ring-white/5 group-hover:ring-[#0A84FF]/40 transition-all duration-500">
                   <img 
                     src={video.thumbnail} 
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" 
                     alt={video.title} 
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                   
                   {/* Duration Badge */}
-                  <div className="absolute bottom-4 right-4 bg-black/80 backdrop-blur-md px-2 py-1 rounded-lg text-[10px] font-black text-white shadow-xl shadow-black/20">
+                  <div className="absolute bottom-6 right-6 bg-black/80 backdrop-blur-xl px-3 py-1.5 rounded-xl text-[10px] font-black text-white shadow-2xl border border-white/10">
                     {video.duration}
                   </div>
 
                   {/* Play Hover Overlay */}
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all scale-110 group-hover:scale-100 duration-500">
-                    <div className="w-16 h-16 bg-[#FF0000] rounded-full flex items-center justify-center shadow-2xl shadow-[#FF0000]/40">
-                      <Play className="w-8 h-8 text-white fill-white ml-1" />
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all scale-125 group-hover:scale-100 duration-700">
+                    <div className="w-20 h-20 bg-white/20 backdrop-blur-2xl rounded-full flex items-center justify-center shadow-2xl border border-white/20">
+                      <Play className="w-8 h-8 text-white fill-white ml-1.5" />
                     </div>
                   </div>
                 </div>
 
                 {/* Info Section */}
-                <div className="flex gap-4 px-1">
-                  <div className="w-12 h-12 flex-none rounded-2xl overflow-hidden bg-white/5 ring-1 ring-white/5">
+                <div className="flex gap-5 px-2">
+                  <div className="w-14 h-14 flex-none rounded-[1.5rem] overflow-hidden bg-[#1c1c1e] ring-1 ring-white/10 shadow-xl">
                     <img src={video.channelAvatar} className="w-full h-full object-cover" alt={video.channel} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-bold text-base text-white line-clamp-2 leading-snug group-hover:text-[#0A84FF] transition-colors mb-1"
+                    <h4 className="font-black text-lg text-white line-clamp-2 leading-tight group-hover:text-[#0A84FF] transition-colors mb-2"
                         dangerouslySetInnerHTML={{ __html: video.title }} />
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 font-medium">
-                      <div className="flex items-center gap-1">
-                        <span className="group-hover:text-gray-300 transition-colors">{video.channel}</span>
-                        <CheckCircle2 className="w-3 h-3 text-gray-500 fill-gray-500/20" />
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500 font-bold">
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/5 rounded-lg border border-white/5">
+                        <span className="group-hover:text-gray-300 transition-colors uppercase tracking-widest text-[9px]">{video.channel}</span>
+                        <CheckCircle2 className="w-3 h-3 text-[#0A84FF] fill-[#0A84FF]/10" />
                       </div>
-                      <div className="w-1 h-1 bg-gray-700 rounded-full" />
-                      <span>{video.views}</span>
-                      <div className="w-1 h-1 bg-gray-700 rounded-full" />
-                      <span className={cn(video.postedAt === 'LIVE' ? "text-[#FF0000] font-black" : "")}>
+                      <div className="w-1 h-1 bg-gray-800 rounded-full" />
+                      <span className="uppercase tracking-widest text-[9px]">{video.views}</span>
+                      <div className="w-1 h-1 bg-gray-800 rounded-full" />
+                      <span className={cn("uppercase tracking-widest text-[9px]", video.postedAt === 'LIVE' ? "text-[#FF0000] font-black" : "")}>
                         {video.postedAt}
                       </span>
                     </div>
                   </div>
-                  <button className="flex-none p-2 h-10 w-10 text-gray-600 hover:text-white transition-colors">
+                  <button className="flex-none p-3 h-12 w-12 text-gray-600 hover:text-white transition-colors bg-white/5 rounded-2xl border border-white/5 self-start">
                     <MoreVertical className="w-5 h-5" />
                   </button>
                 </div>
@@ -242,34 +244,39 @@ export const YouTubeDiscovery = ({ onSelect }: YouTubeDiscoveryProps) => {
             <motion.div 
               initial={{ opacity: 0 }} 
               animate={{ opacity: 1 }} 
-              className="py-20 text-center"
+              className="py-32 text-center"
             >
-              <div className="w-20 h-20 bg-white/5 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
+              <div className="w-24 h-24 bg-white/5 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 shadow-inner border border-white/5">
                 <Search className="w-10 h-10 text-gray-600 opacity-50" />
               </div>
-              <h5 className="text-white font-bold mb-2">No results found</h5>
-              <p className="text-sm text-gray-500">Try searching for something else or change category.</p>
+              <h5 className="text-white font-black text-xl mb-3 tracking-tight">No results found</h5>
+              <p className="text-sm text-gray-500 uppercase tracking-widest font-bold">Try searching for something else or change category.</p>
             </motion.div>
           )}
         </AnimatePresence>
         
         {isLoading && videos.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-20 grayscale opacity-20">
-            <Loader2 className="w-12 h-12 text-white animate-spin mb-4" />
-            <p className="text-xs font-black uppercase tracking-widest text-white">Fetching results...</p>
+          <div className="flex flex-col items-center justify-center py-32 grayscale opacity-40">
+            <div className="relative">
+               <div className="w-20 h-20 border-4 border-[#0A84FF]/20 rounded-full animate-ping absolute inset-0" />
+               <Loader2 className="w-20 h-20 text-[#0A84FF] animate-spin relative z-10" />
+            </div>
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#0A84FF] mt-12">Fetching the latest...</p>
           </div>
         )}
       </div>
 
       {/* Manual Link Footer */}
-      <div className="mt-12 text-center pb-20">
-        <p className="text-[10px] text-gray-600 font-black uppercase tracking-widest mb-4">Have an unlisted link?</p>
-        <button 
-          onClick={() => onSelect({ id: 'custom', title: '', thumbnail: '', channel: '', channelAvatar: '', views: '', postedAt: '', duration: '', category: '' })}
-          className="bg-white/5 hover:bg-white/10 px-6 py-3 rounded-2xl text-xs font-black text-white uppercase tracking-widest transition-all border border-white/5"
-        >
-          Paste Custom Link
-        </button>
+      <div className="mt-20 text-center pb-32 px-6">
+        <div className="max-w-xs mx-auto p-8 rounded-[3rem] bg-gradient-to-br from-white/5 to-transparent border border-white/5 shadow-2xl">
+          <p className="text-[10px] text-gray-500 font-black uppercase tracking-[0.2em] mb-6 leading-relaxed">Have an unlisted or direct link?</p>
+          <button 
+            onClick={() => onSelect({ id: 'custom', title: '', thumbnail: '', channel: '', channelAvatar: '', views: '', postedAt: '', duration: '', category: '' })}
+            className="w-full bg-white text-black hover:bg-[#0A84FF] hover:text-white py-5 rounded-[2rem] text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-black/40"
+          >
+            Paste Custom Link
+          </button>
+        </div>
       </div>
     </div>
   );
