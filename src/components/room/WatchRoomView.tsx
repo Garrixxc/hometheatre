@@ -30,7 +30,11 @@ import {
   addDoc, 
   serverTimestamp, 
   arrayUnion, 
-  arrayRemove 
+  arrayRemove,
+  setDoc,
+  deleteDoc,
+  getDocs,
+  increment
 } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { AuthContext } from '../../context/AuthContext';
@@ -65,7 +69,9 @@ export const WatchRoomView = ({ roomId, onBack }: { roomId: string, onBack: () =
   const [hoverTime, setHoverTime] = useState<number | null>(null);
   const [isScrubbing, setIsScrubbing] = useState(false);
   const [showAutoplayOverlay, setShowAutoplayOverlay] = useState(false);
+  const [participants, setParticipants] = useState<{uid: string, name: string, joinedAt: any}[]>([]);
   const initialSyncDone = useRef(false);
+  const isLeaving = useRef(false);
 
   useEffect(() => {
     if (room && user && room.kickedUsers?.includes(user.uid)) {
@@ -105,6 +111,79 @@ export const WatchRoomView = ({ roomId, onBack }: { roomId: string, onBack: () =
     }, (e) => handleFirestoreError(e, OperationType.LIST, `rooms/${roomId}/messages`));
     return unsubscribe;
   }, [roomId]);
+
+  // 3. Participant Tracking & Cleanup
+  useEffect(() => {
+    if (!user || !roomId) return;
+
+    const participantDocRef = doc(db, 'rooms', roomId, 'participants', user.uid);
+    const roomRef = doc(db, 'rooms', roomId);
+
+    // Add self to participants
+    const joinRoom = async () => {
+      try {
+        await setDoc(participantDocRef, {
+          uid: user.uid,
+          name: user.displayName || 'Anonymous',
+          joinedAt: serverTimestamp()
+        });
+        await updateDoc(roomRef, {
+          participantsCount: increment(1)
+        });
+      } catch (e) {
+        console.error("Error joining room participants:", e);
+      }
+    };
+
+    joinRoom();
+
+    // Listen to participants for host migration info
+    const participantsQuery = query(collection(db, 'rooms', roomId, 'participants'), orderBy('joinedAt', 'asc'));
+    const unsubscribeParticipants = onSnapshot(participantsQuery, (snapshot) => {
+      const pList = snapshot.docs.map(d => d.data() as {uid: string, name: string, joinedAt: any});
+      setParticipants(pList);
+    });
+
+    // Cleanup on Leave
+    return () => {
+      if (isLeaving.current) return;
+      isLeaving.current = true;
+
+      const leaveRoom = async () => {
+        try {
+          // 1. Remove self from participants
+          await deleteDoc(participantDocRef);
+          await updateDoc(roomRef, {
+            participantsCount: increment(-1)
+          });
+
+          // 2. Fetch remaining participants to decide next step
+          const remainingSnap = await getDocs(participantsQuery);
+          const remaining = remainingSnap.docs
+            .map(d => d.data() as {uid: string, name: string})
+            .filter(p => p.uid !== user.uid);
+
+          if (remaining.length === 0) {
+            // Room is empty, delete it
+            await deleteDoc(roomRef);
+          } else if (user.uid === room?.hostId) {
+            // Host is leaving, migrate host to the next person in line
+            const nextHost = remaining[0];
+            await updateDoc(roomRef, {
+              hostId: nextHost.uid,
+              hostName: nextHost.name,
+              lastUpdated: serverTimestamp()
+            });
+          }
+        } catch (e) {
+          console.error("Error during room cleanup:", e);
+        }
+      };
+
+      leaveRoom();
+      unsubscribeParticipants();
+    };
+  }, [roomId, user?.uid, room?.hostId]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -616,6 +695,7 @@ export const WatchRoomView = ({ roomId, onBack }: { roomId: string, onBack: () =
                     user={user}
                     isHost={isHost}
                     isMuted={room?.mutedUsers?.includes(msg.senderId) || false}
+                    isAdmin={msg.senderId === room?.hostId}
                     moderatingUser={moderatingUser}
                     setModeratingUser={setModeratingUser}
                     onMute={handleMuteUser}

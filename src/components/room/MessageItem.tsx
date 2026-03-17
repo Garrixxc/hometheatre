@@ -13,6 +13,7 @@ export const MessageItem: React.FC<{
   setModeratingUser: (id: string | null) => void;
   onMute: (id: string) => void;
   onKick: (id: string) => void;
+  isAdmin?: boolean;
 }> = ({ 
   msg, 
   user, 
@@ -21,7 +22,8 @@ export const MessageItem: React.FC<{
   moderatingUser, 
   setModeratingUser, 
   onMute, 
-  onKick 
+  onKick,
+  isAdmin
 }) => {
   return (
     <div className={cn("flex gap-3 max-w-[85%] group/msg", msg.senderId === user?.uid ? "flex-row-reverse self-end" : "flex-row self-start")}>
@@ -35,12 +37,17 @@ export const MessageItem: React.FC<{
         <div className="flex items-center gap-2 mb-1">
           <span className={cn("text-[10px] text-gray-500", msg.senderId === user?.uid ? "order-2" : "order-1")}>
             {msg.senderId !== user?.uid && `${msg.senderName} • `}
-            {msg.timestamp?.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            {msg.timestamp ? msg.timestamp.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '...'}
           </span>
+          {isAdmin && (
+            <span className="bg-[#0A84FF] text-white text-[8px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-tighter order-2">
+              Admin
+            </span>
+          )}
           {isHost && msg.senderId !== user?.uid && (
             <button 
               onClick={() => setModeratingUser(moderatingUser === msg.senderId ? null : msg.senderId)}
-              className="opacity-0 group-hover/msg:opacity-100 p-1 hover:bg-white/10 rounded transition-all order-2"
+              className="opacity-0 group-hover/msg:opacity-100 p-1 hover:bg-white/10 rounded transition-all order-3"
             >
               <MoreVertical className="w-3 h-3 text-gray-400" />
             </button>
