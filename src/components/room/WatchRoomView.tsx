@@ -522,37 +522,40 @@ export const WatchRoomView = ({ roomId, onBack }: { roomId: string, onBack: () =
         </div>
       </section>
 
-      <header className="p-4 bg-[#1c1c1e] border-b border-white/10 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <h2 className="text-sm font-semibold">{room.title}</h2>
-          <span className="text-[10px] text-gray-400">{room.participantsCount} Watching</span>
+      <header className="px-6 py-4 bg-[#1c1c1e] border-b border-white/5 flex items-center justify-between shadow-lg z-10">
+        <div className="flex flex-col">
+          <h2 className="text-base font-black text-white leading-tight tracking-tight">{room.title}</h2>
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 bg-[#32D74B] rounded-full animate-pulse" />
+            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{room.participantsCount || 1} watching now</span>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {isHost && (
             <button 
               onClick={() => setShowQueue(!showQueue)}
-              className={cn("p-1.5 rounded-full transition-colors", showQueue ? "bg-[#0A84FF] text-white" : "hover:bg-white/10 text-gray-400")}
+              className={cn(
+                "p-2.5 rounded-2xl transition-all border", 
+                showQueue ? "bg-[#0A84FF] border-[#0A84FF] text-white shadow-lg shadow-[#0A84FF]/20" : "bg-white/5 border-white/5 text-gray-400 hover:bg-white/10"
+              )}
             >
-              <ListMusic className="w-4 h-4" />
+              <ListMusic className="w-5 h-5" />
             </button>
           )}
           {isHost && (
             <button 
               onClick={() => setShowSettingsModal(true)}
-              className="p-1.5 hover:bg-white/10 rounded-full transition-colors"
+              className="p-2.5 bg-white/5 border border-white/5 rounded-2xl hover:bg-white/10 transition-all"
             >
-              <Settings className="w-4 h-4 text-gray-400" />
+              <Settings className="w-5 h-5 text-gray-400" />
             </button>
           )}
           <button 
             onClick={() => setShowInviteModal(true)}
-            className="bg-[#0A84FF]/20 text-[#0A84FF] px-3 py-1 rounded-full text-[10px] font-bold"
+            className="bg-[#0A84FF] text-white px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-tighter shadow-lg shadow-[#0A84FF]/20 hover:scale-105 transition-transform"
           >
-            INVITE
+            Invite
           </button>
-          <div className="text-right text-[10px] text-gray-500">
-            Hosted by {room.hostName}
-          </div>
         </div>
       </header>
 
@@ -687,12 +690,12 @@ export const WatchRoomView = ({ roomId, onBack }: { roomId: string, onBack: () =
         ))}
       </div>
 
-      <footer className="p-4 bg-[#1c1c1e]/50 border-t border-white/10 pb-8">
-        <div className="flex items-center space-x-3">
-          <button className="text-[#0A84FF]">
+      <footer className="p-6 bg-[#1c1c1e] border-t border-white/5 pb-12 shadow-[0_-10px_40px_rgba(0,0,0,0.3)]">
+        <div className="flex items-center gap-4">
+          <button className="p-3 bg-white/5 rounded-2xl text-gray-400 hover:text-white hover:bg-white/10 transition-all">
             <Plus className="w-6 h-6" />
           </button>
-          <div className="relative flex-1">
+          <div className="relative flex-1 group">
             <input 
               type="text" 
               value={inputValue}
@@ -700,20 +703,20 @@ export const WatchRoomView = ({ roomId, onBack }: { roomId: string, onBack: () =
               onKeyPress={(e) => e.key === 'Enter' && handleSend()}
               disabled={room?.mutedUsers?.includes(user?.uid || '')}
               className={cn(
-                "w-full bg-black border border-white/20 rounded-full py-2 px-4 text-sm focus:outline-none focus:border-[#0A84FF]",
-                room?.mutedUsers?.includes(user?.uid || '') && "opacity-50 cursor-not-allowed"
+                "w-full bg-black/40 border border-white/10 rounded-3xl py-4 px-6 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#0A84FF]/50 focus:ring-4 focus:ring-[#0A84FF]/10 transition-all",
+                room?.mutedUsers?.includes(user?.uid || '') && "opacity-50 cursor-not-allowed bg-gray-900"
               )} 
-              placeholder={room?.mutedUsers?.includes(user?.uid || '') ? "You are muted" : "iMessage"} 
+              placeholder={room?.mutedUsers?.includes(user?.uid || '') ? "You are muted in this room" : "Type a message..."} 
             />
             <button 
               onClick={handleSend}
-              disabled={room?.mutedUsers?.includes(user?.uid || '')}
+              disabled={room?.mutedUsers?.includes(user?.uid || '') || !inputValue.trim()}
               className={cn(
-                "absolute right-2 top-1.5 bg-[#0A84FF] p-1 rounded-full",
-                room?.mutedUsers?.includes(user?.uid || '') && "opacity-50 cursor-not-allowed"
+                "absolute right-3 top-2.5 p-2 rounded-2xl transition-all shadow-lg",
+                inputValue.trim() ? "bg-[#0A84FF] text-white shadow-[#0A84FF]/20" : "bg-white/5 text-gray-600 cursor-not-allowed"
               )}
             >
-              <Send className="w-4 h-4 text-white" />
+              <Send className="w-5 h-5" />
             </button>
           </div>
         </div>

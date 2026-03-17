@@ -17,5 +17,21 @@ export const auth = getAuth(app);
 export const db = getFirestore(app, import.meta.env.VITE_FIREBASE_FIRESTORE_DB_ID);
 export const googleProvider = new GoogleAuthProvider();
 
-export const signInWithGoogle = () => signInWithPopup(auth, googleProvider);
+export const signInWithGoogle = async () => {
+  try {
+    console.log("Attempting Google Sign-In...");
+    const result = await signInWithPopup(auth, googleProvider);
+    console.log("Sign-In successful:", result.user.email);
+    return result;
+  } catch (error: any) {
+    console.error("Google Sign-In Error:", error);
+    if (error.code === 'auth/popup-blocked') {
+      alert("Popup blocked! Please allow popups for this site to sign in.");
+    } else {
+      alert(`Login failed: ${error.message}`);
+    }
+    throw error;
+  }
+};
+
 export const logout = () => signOut(auth);

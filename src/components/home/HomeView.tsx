@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { Search, Play } from 'lucide-react';
 import { db } from '../../firebase';
@@ -49,31 +50,44 @@ export const HomeView = ({ onJoinRoom }: { onJoinRoom: (roomId: string) => void 
               </div>
             ) : (
               rooms.map(room => (
-                <div key={room.id} className="flex-none w-72 cursor-pointer" onClick={() => onJoinRoom(room.id)}>
-                  <div className="relative aspect-video rounded-xl overflow-hidden mb-2 bg-card">
+                <motion.div 
+                  key={room.id} 
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  whileHover={{ y: -4 }}
+                  className="flex-none w-80 cursor-pointer group" 
+                  onClick={() => onJoinRoom(room.id)}
+                >
+                  <div className="relative aspect-video rounded-2xl overflow-hidden mb-4 bg-[#1c1c1e] ring-1 ring-white/10 group-hover:ring-white/20 transition-all shadow-xl">
                     {room.thumbnail ? (
-                      <img src={room.thumbnail} alt={room.title} className="w-full h-full object-cover" />
+                      <img src={room.thumbnail} alt={room.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-800 to-black">
-                        <Play className="w-12 h-12 text-gray-600" />
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#0A84FF]/20 to-[#0A84FF]/5">
+                        <Play className="w-12 h-12 text-[#0A84FF] fill-[#0A84FF]/20" />
                       </div>
                     )}
-                    <div className="absolute top-2 right-2 bg-red-500 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">Live</div>
+                    <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-red-500 text-[10px] font-black px-2 py-1 rounded-lg uppercase tracking-wider shadow-lg">
+                      <div className="w-1 h-1 bg-white rounded-full animate-pulse" />
+                      Live
+                    </div>
                   </div>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-medium text-sm">{room.title}</h3>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[9px] font-bold uppercase text-[#0A84FF] bg-[#0A84FF]/10 px-1.5 py-0.5 rounded">
+                  <div className="flex justify-between items-start px-1">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-base text-white truncate mb-1">{room.title}</h3>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-[10px] font-black uppercase text-white bg-[#0A84FF] px-2 py-0.5 rounded-md">
                           {room.platform || room.type}
                         </span>
-                        {room.description && <p className="text-[10px] text-gray-500 line-clamp-1">{room.description}</p>}
+                        {room.description && <p className="text-xs text-gray-500 truncate">{room.description}</p>}
                       </div>
-                      <p className="text-xs text-gray-400">Host: {room.hostName}</p>
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 rounded-full bg-gray-800 border border-white/10" />
+                        <p className="text-[11px] text-gray-400 font-medium">Host: <span className="text-gray-200">{room.hostName}</span></p>
+                      </div>
                     </div>
-                    <button className="bg-[#0A84FF] text-white text-[10px] font-bold py-1 px-3 rounded-full uppercase tracking-wider">Join</button>
+                    <button className="bg-white text-black text-[11px] font-black py-2 px-4 rounded-xl uppercase tracking-tighter hover:bg-[#0A84FF] hover:text-white transition-colors">Join</button>
                   </div>
-                </div>
+                </motion.div>
               ))
             )}
           </div>
