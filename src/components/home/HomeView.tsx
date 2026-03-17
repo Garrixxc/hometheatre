@@ -49,7 +49,7 @@ export const HomeView = ({
 
   const getPlatformLogo = (platform: string) => {
     const logos: Record<string, string> = {
-      youtube: "https://upload.wikimedia.org/wikipedia/commons/e/ef/Youtube_logo.png",
+      youtube: "https://upload.wikimedia.org/wikipedia/commons/b/b8/YouTube_Logo_2017.svg",
       netflix: "https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg",
       hotstar: "https://secure-media.hotstar.com/web-assets/prod/images/brand-logos/disney-hotstar-logo-dark.svg",
       disney: "https://upload.wikimedia.org/wikipedia/commons/3/3e/Disney%2B_logo.svg",

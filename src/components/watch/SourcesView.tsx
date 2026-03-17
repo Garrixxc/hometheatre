@@ -32,11 +32,10 @@ export const SourcesView = ({
   const [roomVideoUrl, setRoomVideoUrl] = useState('');
   const [isSearchingYouTube, setIsSearchingYouTube] = useState(false);
 
-  const sources = [
     { 
       id: 'youtube', 
       name: 'YouTube', 
-      logo: "https://upload.wikimedia.org/wikipedia/commons/e/ef/Youtube_logo.png",
+      logo: "https://upload.wikimedia.org/wikipedia/commons/b/b8/YouTube_Logo_2017.svg",
       color: 'from-[#FF0000]/20 to-[#FF0000]/5',
       accent: '#FF0000'
     },
@@ -67,20 +66,6 @@ export const SourcesView = ({
       logo: "https://upload.wikimedia.org/wikipedia/commons/1/11/Amazon_Prime_Video_logo.svg",
       color: 'from-[#00A8E1]/20 to-[#00A8E1]/5',
       accent: '#00A8E1'
-    },
-    { 
-      id: 'twitch', 
-      name: 'Twitch', 
-      logo: "https://upload.wikimedia.org/wikipedia/commons/d/d3/Twitch_logo.svg",
-      color: 'from-[#6441A5]/20 to-[#6441A5]/5',
-      accent: '#6441A5'
-    },
-    { 
-      id: 'hulu', 
-      name: 'Hulu', 
-      logo: "https://upload.wikimedia.org/wikipedia/commons/e/e4/Hulu_Logo.svg",
-      color: 'from-[#1CE783]/20 to-[#1CE783]/5',
-      accent: '#1CE783'
     },
     { 
       id: 'movie', 
@@ -172,10 +157,9 @@ export const SourcesView = ({
                     {source.logo === "direct" ? (
                       <HardDrive className="w-12 h-12 text-white opacity-40" />
                     ) : (
-                      <img 
                         src={source.logo} 
                         alt={source.name} 
-                        className="max-w-full max-h-12 object-contain filter brightness-0 invert opacity-40 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500" 
+                        className="max-w-full max-h-12 object-contain filter brightness-0 invert opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500" 
                       />
                     )}
                   </div>
