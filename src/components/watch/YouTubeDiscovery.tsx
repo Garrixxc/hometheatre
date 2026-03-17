@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Play, Clock, MoreVertical, CheckCircle2 } from 'lucide-react';
+import { Search, Play, Clock, MoreVertical, CheckCircle2, Loader2, WifiOff } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 interface Video {
@@ -41,17 +41,6 @@ const MOCK_VIDEOS: Video[] = [
     category: 'Movies'
   },
   {
-    id: 'T2wqeK-C2I0',
-    title: 'Tears of Steel - Sci-Fi Short Film',
-    thumbnail: 'https://img.youtube.com/vi/T2wqeK-C2I0/maxresdefault.jpg',
-    channel: 'Blender Studio',
-    channelAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=SciFi',
-    views: '5.1M views',
-    postedAt: '3 years ago',
-    duration: '12:14',
-    category: 'Movies'
-  },
-  {
     id: 'dQw4w9WgXcQ',
     title: 'Rick Astley - Never Gonna Give You Up (Official Music Video)',
     thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg',
@@ -61,50 +50,6 @@ const MOCK_VIDEOS: Video[] = [
     postedAt: '14 years ago',
     duration: '3:32',
     category: 'Music'
-  },
-  {
-    id: '9bZkp7q19f0',
-    title: 'PSY - GANGNAM STYLE(강남스타일) M/V',
-    thumbnail: 'https://img.youtube.com/vi/9bZkp7q19f0/maxresdefault.jpg',
-    channel: 'officialpsy',
-    channelAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=PSY',
-    views: '5B views',
-    postedAt: '11 years ago',
-    duration: '4:12',
-    category: 'Music'
-  },
-  {
-    id: 'fHI8X4OXluQ',
-    title: 'Relaxing Jazz Piano Radio - Slow Jazz Music - 24/7 Live Stream',
-    thumbnail: 'https://img.youtube.com/vi/fHI8X4OXluQ/maxresdefault.jpg',
-    channel: 'Cafe Music',
-    channelAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jazz',
-    views: '24K watching',
-    postedAt: 'LIVE',
-    duration: 'LIVE',
-    category: 'Live'
-  },
-  {
-    id: '2Vv-BfVoq4g',
-    title: 'Ed Sheeran - Perfect (Official Music Video)',
-    thumbnail: 'https://img.youtube.com/vi/2Vv-BfVoq4g/maxresdefault.jpg',
-    channel: 'Ed Sheeran',
-    channelAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Ed',
-    views: '3.6B views',
-    postedAt: '6 years ago',
-    duration: '4:39',
-    category: 'Music'
-  },
-  {
-    id: 'lTRiuFIWV5M',
-    title: '1Hour of Coding Music - LoFi Hip Hop Mix',
-    thumbnail: 'https://img.youtube.com/vi/lTRiuFIWV5M/maxresdefault.jpg',
-    channel: 'LoFi Girl',
-    channelAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=LoFi',
-    views: '2M views',
-    postedAt: '5 months ago',
-    duration: '1:00:23',
-    category: 'Gaming'
   }
 ];
 
@@ -114,16 +59,72 @@ interface YouTubeDiscoveryProps {
 
 export const YouTubeDiscovery = ({ onSelect }: YouTubeDiscoveryProps) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [videos, setVideos] = useState<Video[]>(MOCK_VIDEOS);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredVideos = useMemo(() => {
-    return MOCK_VIDEOS.filter(v => {
-      const matchesSearch = v.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                           v.channel.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = selectedCategory === 'All' || v.category === selectedCategory;
-      return matchesSearch && matchesCategory;
-    });
-  }, [searchQuery, selectedCategory]);
+  const API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(searchQuery), 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const fetchYouTubeVideos = useCallback(async (query: string, category: string) => {
+    if (!API_KEY) {
+      // Fallback to local filtering of mocks if no API key
+      const filtered = MOCK_VIDEOS.filter(v => 
+        (v.title.toLowerCase().includes(query.toLowerCase()) || v.channel.toLowerCase().includes(query.toLowerCase())) &&
+        (category === 'All' || v.category === category)
+      );
+      setVideos(filtered);
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const q = category === 'All' ? query : `${query} ${category}`;
+      const response = await fetch(
+        `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=12&q=${encodeURIComponent(q)}&type=video&key=${API_KEY}`
+      );
+      
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error.message);
+      }
+
+      const mappedVideos: Video[] = data.items.map((item: any) => ({
+        id: item.id.videoId,
+        title: item.snippet.title,
+        thumbnail: item.snippet.thumbnails.high?.url || item.snippet.thumbnails.default?.url,
+        channel: item.snippet.channelTitle,
+        channelAvatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${item.snippet.channelId}`,
+        views: 'Live Search',
+        postedAt: new Date(item.snippet.publishedAt).toLocaleDateString(),
+        duration: 'HD', // Would need another API call for exact duration
+        category: category
+      }));
+
+      setVideos(mappedVideos);
+    } catch (err: any) {
+      console.error('YouTube Search Error:', err);
+      setError(err.message || 'Failed to fetch videos');
+      // On error, show mocks so UI isn't empty
+      setVideos(MOCK_VIDEOS);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [API_KEY]);
+
+  useEffect(() => {
+    fetchYouTubeVideos(debouncedQuery, selectedCategory);
+  }, [debouncedQuery, selectedCategory, fetchYouTubeVideos]);
 
   return (
     <div className="flex flex-col h-full bg-background pb-32">
@@ -138,6 +139,11 @@ export const YouTubeDiscovery = ({ onSelect }: YouTubeDiscoveryProps) => {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-[#1c1c1e] pl-14 pr-6 py-4 rounded-[2rem] text-sm text-white focus:outline-none focus:ring-4 focus:ring-[#0A84FF]/10 transition-all border border-white/5 shadow-2xl"
           />
+          {isLoading && (
+            <div className="absolute right-6 top-1/2 -translate-y-1/2">
+              <Loader2 className="w-5 h-5 text-[#0A84FF] animate-spin" />
+            </div>
+          )}
         </div>
 
         {/* Category Selector */}
@@ -159,13 +165,23 @@ export const YouTubeDiscovery = ({ onSelect }: YouTubeDiscoveryProps) => {
         </div>
       </div>
 
+      {/* API Warning if missing */}
+      {!API_KEY && (
+        <div className="mx-4 mb-4 p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center gap-3">
+          <WifiOff className="w-5 h-5 text-amber-500" />
+          <p className="text-[10px] font-bold text-amber-500 uppercase tracking-widest">
+            Demo Mode: Real YouTube search requires an API Key in .env
+          </p>
+        </div>
+      )}
+
       {/* Video Grid */}
       <div className="px-4 mt-4 grid grid-cols-1 gap-8">
         <AnimatePresence mode="popLayout">
-          {filteredVideos.length > 0 ? (
-            filteredVideos.map((video, idx) => (
+          {videos.length > 0 ? (
+            videos.map((video, idx) => (
               <motion.div
-                key={video.id}
+                key={video.id + idx}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95 }}
@@ -201,9 +217,8 @@ export const YouTubeDiscovery = ({ onSelect }: YouTubeDiscoveryProps) => {
                     <img src={video.channelAvatar} className="w-full h-full object-cover" alt={video.channel} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-bold text-base text-white line-clamp-2 leading-snug group-hover:text-[#0A84FF] transition-colors mb-1">
-                      {video.title}
-                    </h4>
+                    <h4 className="font-bold text-base text-white line-clamp-2 leading-snug group-hover:text-[#0A84FF] transition-colors mb-1"
+                        dangerouslySetInnerHTML={{ __html: video.title }} />
                     <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 font-medium">
                       <div className="flex items-center gap-1">
                         <span className="group-hover:text-gray-300 transition-colors">{video.channel}</span>
@@ -223,7 +238,7 @@ export const YouTubeDiscovery = ({ onSelect }: YouTubeDiscoveryProps) => {
                 </div>
               </motion.div>
             ))
-          ) : (
+          ) : !isLoading && (
             <motion.div 
               initial={{ opacity: 0 }} 
               animate={{ opacity: 1 }} 
@@ -237,6 +252,13 @@ export const YouTubeDiscovery = ({ onSelect }: YouTubeDiscoveryProps) => {
             </motion.div>
           )}
         </AnimatePresence>
+        
+        {isLoading && videos.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-20 grayscale opacity-20">
+            <Loader2 className="w-12 h-12 text-white animate-spin mb-4" />
+            <p className="text-xs font-black uppercase tracking-widest text-white">Fetching results...</p>
+          </div>
+        )}
       </div>
 
       {/* Manual Link Footer */}
