@@ -27,6 +27,30 @@ const AppContent = () => {
 
   useEffect(() => {
     if (!user) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const roomIdFromUrl = params.get('room');
+
+    if (roomIdFromUrl) {
+      setActiveRoomId(roomIdFromUrl);
+      setView('watch');
+    }
+  }, [user]);
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+
+    if (view === 'watch' && activeRoomId) {
+      url.searchParams.set('room', activeRoomId);
+    } else {
+      url.searchParams.delete('room');
+    }
+
+    window.history.replaceState({}, '', url.toString());
+  }, [view, activeRoomId]);
+
+  useEffect(() => {
+    if (!user) return;
     const q = query(
       collection(db, 'invitations'), 
       where('toId', '==', user.uid),
@@ -91,7 +115,7 @@ const AppContent = () => {
         )}
         {view === 'watch' && activeRoomId && (
           <motion.div key="watch" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="fixed inset-0 z-[100]">
-            <WatchRoomView roomId={activeRoomId} onBack={() => setView('home')} />
+            <WatchRoomView roomId={activeRoomId} onBack={() => { setActiveRoomId(null); setView('home'); }} />
           </motion.div>
         )}
       </AnimatePresence>
