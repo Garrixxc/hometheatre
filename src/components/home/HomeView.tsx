@@ -65,15 +65,27 @@ export const HomeView = ({
 
   const quickActions = [
     {
-      label: 'Create a YouTube watch party',
+      label: 'YouTube Party',
+      icon: <Play className="h-5 w-5" />,
+      color: 'bg-red-500/10 text-red-500',
       action: () => setView('sources'),
     },
     {
-      label: 'Share a direct MP4 link',
+      label: 'MP4 Link',
+      icon: <Search className="h-5 w-5" />,
+      color: 'bg-blue-500/10 text-blue-500',
       action: () => setView('sources'),
     },
     {
-      label: 'Pick a streaming platform and invite friends',
+      label: 'Invite Friends',
+      icon: <Users className="h-5 w-5" />,
+      color: 'bg-purple-500/10 text-purple-500',
+      action: () => setView('sources'),
+    },
+    {
+      label: 'Live Streams',
+      icon: <Flame className="h-5 w-5" />,
+      color: 'bg-orange-500/10 text-orange-500',
       action: () => setView('sources'),
     },
   ];
@@ -82,7 +94,7 @@ export const HomeView = ({
     <div className="page-shell">
       <Header
         title="Watch together, without the chaos."
-        subtitle="Find live rooms, start one fast, and jump between phone and laptop without losing sync."
+        subtitle="Real-time watch parties for you and your friends."
         rightElement={
           <button onClick={() => setView('sources')} className="primary-button whitespace-nowrap !px-5 !py-3 text-sm">
             Create Room
@@ -91,58 +103,92 @@ export const HomeView = ({
       />
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1.3fr_0.7fr]">
-        <section className="hero-panel rounded-[2rem] p-6 md:p-8">
-          <p className="section-label mb-4">Shared Cinema</p>
-          <h2 className="page-title max-w-2xl">Beautiful live rooms for movie nights, streams, and YouTube hangs.</h2>
-          <p className="mt-4 max-w-xl text-sm leading-6 text-muted md:text-base">
-            Jump into live rooms, invite your people, and keep playback in sync across phones and laptops.
-          </p>
+        <section className="relative overflow-hidden rounded-[2.5rem] hero-panel min-h-[400px] flex flex-col justify-end p-8 md:p-10">
+          <img 
+            src="/assets/images/hero-bg.png" 
+            alt="Hero Background" 
+            className="absolute inset-0 h-full w-full object-cover opacity-60 mix-blend-overlay"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
+          
+          <div className="relative z-10">
+            <p className="section-label mb-3 text-white/80">Shared Cinema</p>
+            <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight text-white max-w-2xl leading-[1.1]">
+              Beautiful live rooms for movie nights and YouTube hangs.
+            </h2>
+            <p className="mt-6 max-w-lg text-base leading-relaxed text-white/70">
+              Jump into live rooms, invite your people, and keep playback in sync across all devices.
+            </p>
 
-          <div className="mt-6 grid gap-4 sm:grid-cols-3">
-            {[
-              { label: 'Active rooms', value: rooms.length || 0 },
-              { label: 'Live viewers', value: rooms.reduce((sum, room) => sum + (room.participantsCount || 0), 0) || 0 },
-              { label: 'Sources ready', value: 6 },
-            ].map((item) => (
-              <div key={item.label} className="glass-panel rounded-[1.4rem] p-4">
-                <p className="text-2xl font-extrabold tracking-[-0.05em]">{item.value}</p>
-                <p className="mt-1 text-sm text-muted">{item.label}</p>
+            <div className="mt-8 flex flex-wrap gap-4 items-center">
+              <div className="flex -space-x-3 overflow-hidden">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="inline-block h-10 w-10 rounded-full ring-2 ring-background bg-slate-800" />
+                ))}
               </div>
-            ))}
-          </div>
+              <p className="text-sm font-medium text-white/60">
+                <span className="text-white font-bold">{rooms.length * 4 + 12}</span> people watching now
+              </p>
+            </div>
 
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-            <button onClick={() => setView('sources')} className="primary-button">
-              Start a room
-            </button>
-            <button onClick={() => setView('watch')} className="secondary-button">
-              Browse live rooms
-            </button>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <button onClick={() => setView('sources')} className="primary-button !py-4 !px-8">
+                Start a room
+              </button>
+              <button onClick={() => setView('watch')} className="secondary-button !bg-white/10 !text-white !border-white/10 backdrop-blur-md">
+                Browse live rooms
+              </button>
+            </div>
           </div>
         </section>
 
-        <section className="glass-panel rounded-[2rem] p-6">
-          <p className="section-label mb-4">Quick Find</p>
-          <label className="relative block">
-            <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted" />
-            <input
-              type="text"
-              placeholder="Search shows, creators, or room names"
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              className="soft-input pl-12"
-            />
-          </label>
-          <div className="mt-6 space-y-3">
-            {quickActions.map((item) => (
-              <button
-                key={item.label}
-                onClick={item.action}
-                className="block w-full rounded-[1.2rem] border border-border/70 bg-background/50 px-4 py-3 text-left text-sm text-muted transition-colors hover:border-[var(--accent)]/30 hover:text-foreground"
-              >
-                {item.label}
-              </button>
-            ))}
+        <section className="flex flex-col gap-6">
+          <div className="glass-panel flex-1 rounded-[2.5rem] p-8">
+            <div className="mb-6 flex items-center justify-between">
+              <p className="section-label">Quick Actions</p>
+              <Sparkles className="h-5 w-5 text-accent" />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              {quickActions.map((item) => (
+                <button
+                  key={item.label}
+                  onClick={item.action}
+                  className="group relative flex flex-col gap-3 rounded-[1.8rem] bg-background/40 p-5 text-left transition-all hover:bg-background/60 hover:scale-[1.02] border border-transparent hover:border-border"
+                >
+                  <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${item.color}`}>
+                    {item.icon}
+                  </div>
+                  <p className="text-sm font-bold tracking-tight">{item.label}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="glass-panel flex-1 rounded-[2.5rem] p-8">
+            <p className="section-label mb-6">Search Anything</p>
+            <label className="relative block">
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted" />
+              <input
+                type="text"
+                placeholder="Shows, creators, or rooms..."
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                className="soft-input pl-12 bg-background/30 rounded-2xl"
+              />
+            </label>
+            <div className="mt-6 grid grid-cols-3 gap-3">
+              {[
+                { label: 'Active', value: rooms.length || 0 },
+                { label: 'Live', value: rooms.reduce((sum, room) => sum + (room.participantsCount || 0), 0) || 0 },
+                { label: 'Sources', value: 6 },
+              ].map((item) => (
+                <div key={item.label} className="text-center">
+                  <p className="text-xl font-black">{item.value}</p>
+                  <p className="text-[10px] uppercase tracking-widest text-muted font-bold mt-1">{item.label}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
       </div>
@@ -227,16 +273,23 @@ export const HomeView = ({
         )}
       </section>
 
-      <section className="mt-10">
-        <div className="mb-5 flex items-center gap-3">
-          <Flame className="h-5 w-5 text-orange-500" />
-          <div>
-            <p className="section-label">Trending</p>
-            <h3 className="text-2xl font-extrabold tracking-[-0.05em]">Popular on YouTube</h3>
+      <section className="mt-12">
+        <div className="mb-6 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-orange-500/10 text-orange-500">
+              <Flame className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="section-label !mb-0">Trending</p>
+              <h3 className="text-2xl font-extrabold tracking-tight">Popular on YouTube</h3>
+            </div>
           </div>
+          <button onClick={() => setView('sources')} className="text-sm font-bold text-accent hover:underline">
+            See more
+          </button>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid gap-6 lg:grid-cols-2">
           {trending.length > 0
             ? trending.map((item, idx) => (
                 <motion.button
@@ -245,25 +298,30 @@ export const HomeView = ({
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: idx * 0.05 }}
                   onClick={() => setView('sources')}
-                  className="glass-panel flex flex-col gap-4 rounded-[1.6rem] p-4 text-left sm:flex-row"
+                  className="glass-panel group overflow-hidden flex flex-col gap-6 rounded-[2.2rem] p-5 text-left sm:flex-row transition-all hover:scale-[1.01]"
                 >
-                  <img
-                    src={item.snippet.thumbnails.high.url}
-                    alt={item.snippet.title}
-                    className="aspect-video w-full rounded-[1.1rem] object-cover sm:w-56"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="section-label mb-2">Featured pick</p>
-                    <h4 className="line-clamp-2 text-lg font-extrabold tracking-[-0.04em]">{item.snippet.title}</h4>
-                    <p className="mt-2 truncate text-sm text-muted">{item.snippet.channelTitle}</p>
-                    <p className="mt-3 text-sm font-semibold text-accent">
-                      {(parseInt(item.statistics.viewCount, 10) / 1000000).toFixed(1)}M views
-                    </p>
+                  <div className="relative aspect-video w-full shrink-0 overflow-hidden rounded-[1.6rem] sm:w-56">
+                    <img
+                      src={item.snippet.thumbnails.high.url}
+                      alt={item.snippet.title}
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                    <div className="absolute bottom-2 right-2 rounded-lg bg-black/70 px-2 py-1 text-[10px] font-bold text-white backdrop-blur-md">
+                      HD
+                    </div>
+                  </div>
+                  <div className="min-w-0 flex-1 py-1">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-accent mb-2">Featured pick</p>
+                    <h4 className="line-clamp-2 text-lg font-extrabold tracking-tight leading-[1.3] group-hover:text-accent transition-colors">{item.snippet.title}</h4>
+                    <div className="mt-4 flex items-center gap-2">
+                      <div className="h-6 w-6 rounded-full bg-slate-800" />
+                      <p className="truncate text-sm font-semibold text-muted">{item.snippet.channelTitle}</p>
+                    </div>
                   </div>
                 </motion.button>
               ))
             : Array.from({ length: 4 }).map((_, index) => (
-                <div key={index} className="glass-panel h-36 animate-pulse rounded-[1.6rem]" />
+                <div key={index} className="glass-panel h-40 animate-pulse rounded-[2.2rem]" />
               ))}
         </div>
       </section>
