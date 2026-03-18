@@ -92,7 +92,7 @@ export const SourcesView = ({
         videoUrl: roomVideoUrl.trim() || null,
         hostId: user.uid,
         hostName: user.displayName || 'Anonymous',
-        participantsCount: 1,
+        participantsCount: 0,
         createdAt: serverTimestamp(),
         playbackState: 'paused',
         currentTime: 0,

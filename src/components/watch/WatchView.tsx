@@ -6,6 +6,7 @@ import { db } from '../../firebase';
 import { Room, View } from '../../types';
 import { handleFirestoreError, OperationType } from '../../lib/error';
 import { Header, LoadingSpinner } from '../common/UI';
+import { hydrateRoom, resolveLiveRooms } from '../../lib/rooms';
 
 export const WatchView = ({
   setView,
@@ -21,9 +22,10 @@ export const WatchView = ({
     const q = query(collection(db, 'rooms'), orderBy('createdAt', 'desc'));
     const unsubscribe = onSnapshot(
       q,
-      (snapshot) => {
-        const roomData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Room));
-        setRooms(roomData);
+      async (snapshot) => {
+        const roomData = snapshot.docs.map(hydrateRoom);
+        const liveRooms = await resolveLiveRooms(roomData);
+        setRooms(liveRooms);
         setLoading(false);
       },
       (e) => {
@@ -38,6 +40,7 @@ export const WatchView = ({
     <div className="page-shell">
       <Header
         title="Live watch rooms"
+        subtitle="Only rooms with active participants stay visible here."
         rightElement={
           <button onClick={() => setView('sources')} className="primary-button !p-3" aria-label="Create room">
             <Plus className="h-5 w-5" />

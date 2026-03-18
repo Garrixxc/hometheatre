@@ -6,6 +6,7 @@ import { db } from '../../firebase';
 import { Room, View } from '../../types';
 import { handleFirestoreError, OperationType } from '../../lib/error';
 import { Header } from '../common/UI';
+import { hydrateRoom, resolveLiveRooms } from '../../lib/rooms';
 
 export const HomeView = ({
   onJoinRoom,
@@ -17,6 +18,7 @@ export const HomeView = ({
   const [rooms, setRooms] = useState<Room[]>([]);
   const [trending, setTrending] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const YOUTUBE_API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
 
@@ -24,9 +26,10 @@ export const HomeView = ({
     const q = query(collection(db, 'rooms'), orderBy('createdAt', 'desc'), limit(10));
     const unsubscribe = onSnapshot(
       q,
-      (snapshot) => {
-        const roomData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Room));
-        setRooms(roomData);
+      async (snapshot) => {
+        const roomData = snapshot.docs.map(hydrateRoom);
+        const liveRooms = await resolveLiveRooms(roomData);
+        setRooms(liveRooms);
         setLoading(false);
       },
       (e) => {
@@ -51,10 +54,35 @@ export const HomeView = ({
     return unsubscribe;
   }, [YOUTUBE_API_KEY]);
 
+  const filteredRooms = rooms.filter((room) => {
+    const normalized = searchQuery.trim().toLowerCase();
+    if (!normalized) return true;
+
+    return [room.title, room.hostName, room.platform, room.type]
+      .filter(Boolean)
+      .some((value) => value.toLowerCase().includes(normalized));
+  });
+
+  const quickActions = [
+    {
+      label: 'Create a YouTube watch party',
+      action: () => setView('sources'),
+    },
+    {
+      label: 'Share a direct MP4 link',
+      action: () => setView('sources'),
+    },
+    {
+      label: 'Pick a streaming platform and invite friends',
+      action: () => setView('sources'),
+    },
+  ];
+
   return (
     <div className="page-shell">
       <Header
         title="Watch together, without the chaos."
+        subtitle="Find live rooms, start one fast, and jump between phone and laptop without losing sync."
         rightElement={
           <button onClick={() => setView('sources')} className="primary-button whitespace-nowrap !px-5 !py-3 text-sm">
             Create Room
@@ -100,18 +128,20 @@ export const HomeView = ({
             <input
               type="text"
               placeholder="Search shows, creators, or room names"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
               className="soft-input pl-12"
             />
           </label>
           <div className="mt-6 space-y-3">
-            {[
-              'Create a YouTube watch party',
-              'Share a direct MP4 link',
-              'Pick a streaming platform and invite friends',
-            ].map((item) => (
-              <div key={item} className="rounded-[1.2rem] border border-border/70 bg-background/50 px-4 py-3 text-sm text-muted">
-                {item}
-              </div>
+            {quickActions.map((item) => (
+              <button
+                key={item.label}
+                onClick={item.action}
+                className="block w-full rounded-[1.2rem] border border-border/70 bg-background/50 px-4 py-3 text-left text-sm text-muted transition-colors hover:border-[var(--accent)]/30 hover:text-foreground"
+              >
+                {item.label}
+              </button>
             ))}
           </div>
         </section>
@@ -134,22 +164,26 @@ export const HomeView = ({
               <div key={index} className="glass-panel h-64 animate-pulse rounded-[1.75rem]" />
             ))}
           </div>
-        ) : rooms.length === 0 ? (
+        ) : filteredRooms.length === 0 ? (
           <div className="hero-panel rounded-[2rem] p-8 text-center">
             <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-accent">
               <Sparkles className="h-7 w-7" />
             </div>
-            <h4 className="text-xl font-extrabold tracking-[-0.04em]">No one is live yet</h4>
+            <h4 className="text-xl font-extrabold tracking-[-0.04em]">
+              {searchQuery.trim() ? 'No matching live rooms' : 'No one is live yet'}
+            </h4>
             <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-muted">
-              Start the first room and set the tone for tonight&apos;s watch party.
+              {searchQuery.trim()
+                ? 'Try another title, creator, or platform.'
+                : 'Start the first room and set the tone for tonight&apos;s watch party.'}
             </p>
             <button onClick={() => setView('sources')} className="primary-button mt-6">
-              Create the first room
+              {searchQuery.trim() ? 'Create a new room' : 'Create the first room'}
             </button>
           </div>
         ) : (
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {rooms.map((room, idx) => (
+            {filteredRooms.map((room, idx) => (
               <motion.button
                 key={room.id}
                 initial={{ opacity: 0, y: 20 }}

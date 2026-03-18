@@ -34,8 +34,7 @@ import {
   arrayRemove,
   setDoc,
   deleteDoc,
-  getDocs,
-  increment
+  getDocs
 } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { AuthContext } from '../../context/AuthContext';
@@ -127,9 +126,6 @@ export const WatchRoomView = ({ roomId, onBack }: { roomId: string, onBack: () =
           name: user.displayName || 'Anonymous',
           joinedAt: serverTimestamp()
         });
-        await updateDoc(roomRef, {
-          participantsCount: increment(1)
-        });
       } catch (e) {
         console.error("Error joining room participants:", e);
       }
@@ -142,6 +138,13 @@ export const WatchRoomView = ({ roomId, onBack }: { roomId: string, onBack: () =
     const unsubscribeParticipants = onSnapshot(participantsQuery, (snapshot) => {
       const pList = snapshot.docs.map(d => d.data() as {uid: string, name: string, joinedAt: any});
       setParticipants(pList);
+
+      updateDoc(roomRef, {
+        participantsCount: snapshot.size,
+        lastUpdated: serverTimestamp()
+      }).catch((error) => {
+        console.error("Error syncing participant count:", error);
+      });
     });
 
     // Cleanup on Leave
@@ -153,9 +156,6 @@ export const WatchRoomView = ({ roomId, onBack }: { roomId: string, onBack: () =
         try {
           // 1. Remove self from participants
           await deleteDoc(participantDocRef);
-          await updateDoc(roomRef, {
-            participantsCount: increment(-1)
-          });
 
           // 2. Fetch remaining participants to decide next step
           const remainingSnap = await getDocs(participantsQuery);

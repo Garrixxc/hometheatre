@@ -21,20 +21,21 @@ export const LoadingSpinner = ({ label = 'Loading content...' }: { label?: strin
 
 export const Header = ({
   title,
+  subtitle,
   showBack,
   onBack,
   rightElement,
   hasNotification,
 }: {
   title: string;
+  subtitle?: string;
   showBack?: boolean;
   onBack?: () => void;
   rightElement?: React.ReactNode;
   hasNotification?: boolean;
 }) => (
-  <header className="sticky top-0 z-40 -mx-4 border-b border-border/60 bg-background/75 px-4 py-4 backdrop-blur-2xl md:-mx-6 md:px-6">
-    <div className="page-shell !w-full !max-w-[1200px] !p-0">
-      <div className="flex items-center justify-between gap-4">
+  <header className="glass-panel rounded-[1.75rem] px-5 py-5 md:px-6">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex min-w-0 items-center gap-3">
           {showBack ? (
             <button
@@ -47,7 +48,8 @@ export const Header = ({
           ) : null}
           <div className="min-w-0">
             <p className="section-label mb-1">HomeTheatre</p>
-            <h1 className="truncate text-2xl font-extrabold tracking-[-0.05em] md:text-4xl">{title}</h1>
+            <h1 className="text-balance text-2xl font-extrabold tracking-[-0.05em] md:text-4xl">{title}</h1>
+            {subtitle ? <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">{subtitle}</p> : null}
           </div>
         </div>
         {rightElement || (
@@ -59,7 +61,6 @@ export const Header = ({
           </button>
         )}
       </div>
-    </div>
   </header>
 );
 
