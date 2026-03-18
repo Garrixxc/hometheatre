@@ -1,110 +1,117 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
-import { Play, Plus, ChevronRight } from 'lucide-react';
+import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
+import { ChevronRight, Play, Plus, Radio, Users } from 'lucide-react';
 import { db } from '../../firebase';
 import { Room, View } from '../../types';
 import { handleFirestoreError, OperationType } from '../../lib/error';
 import { Header, LoadingSpinner } from '../common/UI';
 
-export const WatchView = ({ 
-  setView, 
-  setActiveRoomId 
-}: { 
-  setView: (v: View) => void, 
-  setActiveRoomId: (id: string) => void 
+export const WatchView = ({
+  setView,
+  setActiveRoomId,
+}: {
+  setView: (v: View) => void;
+  setActiveRoomId: (id: string) => void;
 }) => {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const q = query(collection(db, 'rooms'), orderBy('createdAt', 'desc'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const roomData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Room));
-      setRooms(roomData);
-      setLoading(false);
-    }, (e) => {
-      handleFirestoreError(e, OperationType.LIST, 'rooms');
-      setLoading(false);
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const roomData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Room));
+        setRooms(roomData);
+        setLoading(false);
+      },
+      (e) => {
+        handleFirestoreError(e, OperationType.LIST, 'rooms');
+        setLoading(false);
+      },
+    );
     return unsubscribe;
   }, []);
 
   return (
-    <div className="pb-32 bg-background">
-      <Header 
-        title="Live Parties" 
+    <div className="page-shell">
+      <Header
+        title="Live watch rooms"
         rightElement={
-          <motion.button 
-            whileTap={{ scale: 0.9 }}
-            onClick={() => setView('sources')} 
-            className="p-2.5 bg-[#0A84FF] text-white rounded-2xl shadow-lg shadow-[#0A84FF]/20"
-          >
-            <Plus className="w-6 h-6" />
-          </motion.button>
-        } 
+          <button onClick={() => setView('sources')} className="primary-button !p-3" aria-label="Create room">
+            <Plus className="h-5 w-5" />
+          </button>
+        }
       />
-      
-      <div className="px-6 space-y-6 mt-8">
+
+      <section className="hero-panel mt-6 rounded-[2rem] p-6 md:p-8">
+        <p className="section-label mb-3">Live Now</p>
+        <h2 className="text-3xl font-extrabold tracking-[-0.06em] md:text-5xl">Find a room and drop straight in.</h2>
+        <p className="mt-4 max-w-2xl text-sm leading-6 text-muted md:text-base">
+          Each room stays synced for everyone, whether they join from a phone on the couch or a laptop at a desk.
+        </p>
+      </section>
+
+      <div className="mt-8">
         {loading ? (
-          <LoadingSpinner />
+          <LoadingSpinner label="Loading live rooms..." />
         ) : rooms.length === 0 ? (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center py-32 bg-[#1c1c1e] rounded-[3rem] border border-white/5 shadow-2xl"
-          >
-            <div className="w-20 h-20 bg-white/5 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
-              <Play className="w-10 h-10 text-gray-600 opacity-50" />
+          <div className="glass-panel rounded-[2rem] p-10 text-center">
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-accent">
+              <Play className="h-8 w-8" />
             </div>
-            <p className="text-gray-400 font-medium mb-6">No active watch parties right now.</p>
-            <button 
-              onClick={() => setView('sources')} 
-              className="bg-white text-black px-8 py-3 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-[#0A84FF] hover:text-white transition-all shadow-xl"
-            >
-              Start Your Own
+            <h3 className="text-2xl font-extrabold tracking-[-0.05em]">No active rooms yet</h3>
+            <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-muted">
+              Start a new watch party and this space becomes the live lobby for everyone else.
+            </p>
+            <button onClick={() => setView('sources')} className="primary-button mt-6">
+              Start a room
             </button>
-          </motion.div>
+          </div>
         ) : (
-          rooms.map(room => (
-            <motion.div 
-              key={room.id} 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              whileHover={{ y: -4 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => { setActiveRoomId(room.id); setView('watch'); }} 
-              className="bg-[#1c1c1e] p-5 rounded-[2.5rem] flex items-center gap-5 cursor-pointer shadow-2xl border border-white/5 hover:border-white/10 transition-all group"
-            >
-              <div className="w-20 h-20 bg-gradient-to-br from-[#0A84FF] to-[#0051FF] rounded-[1.5rem] flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
-                <Play className="w-10 h-10 text-white fill-white ml-1" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="font-black text-lg text-white truncate mb-1">{room.title}</h3>
-                <p className="text-xs text-gray-500 font-bold mb-3 flex items-center gap-1.5">
-                  <div className="w-1 h-1 bg-gray-500 rounded-full" />
-                  Host: <span className="text-gray-300">{room.hostName}</span>
-                </p>
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1.5 bg-red-500/10 border border-red-500/20 text-red-500 px-2 py-1 rounded-lg">
-                    <div className="w-1 h-1 bg-red-500 rounded-full animate-pulse" />
-                    <span className="text-[10px] font-black uppercase tracking-tighter">Live</span>
-                  </div>
-                  <span className="text-[10px] font-black uppercase tracking-tighter text-gray-500 bg-white/5 px-2 py-1 rounded-lg">
-                    {room.participantsCount || 1} watching
-                  </span>
-                  {room.platform && (
-                    <span className="text-[10px] font-black uppercase tracking-tighter text-[#0A84FF] bg-[#0A84FF]/10 px-2 py-1 rounded-lg">
-                      {room.platform}
-                    </span>
-                  )}
+          <div className="grid gap-5 lg:grid-cols-2">
+            {rooms.map((room, index) => (
+              <motion.button
+                key={room.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.06 }}
+                whileHover={{ y: -4 }}
+                onClick={() => {
+                  setActiveRoomId(room.id);
+                  setView('watch');
+                }}
+                className="glass-panel flex flex-col gap-5 rounded-[1.8rem] p-5 text-left sm:flex-row sm:items-center"
+              >
+                <div className="flex h-24 w-full items-center justify-center rounded-[1.5rem] bg-gradient-to-br from-[#0f6fff] to-[#102142] text-white sm:w-24">
+                  <Play className="h-10 w-10 fill-white/20" />
                 </div>
-              </div>
-              <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors">
-                <ChevronRight className="w-5 h-5 text-gray-500 group-hover:text-white transition-colors" />
-              </div>
-            </motion.div>
-          ))
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full bg-rose-500/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-rose-500">
+                      <Radio className="mr-1 inline h-3.5 w-3.5" />
+                      Live
+                    </span>
+                    {room.platform ? (
+                      <span className="rounded-full bg-[var(--accent-soft)] px-3 py-1 text-xs font-semibold text-accent">
+                        {room.platform}
+                      </span>
+                    ) : null}
+                  </div>
+                  <h3 className="mt-3 text-2xl font-extrabold tracking-[-0.05em]">{room.title}</h3>
+                  <p className="mt-2 text-sm text-muted">Hosted by {room.hostName}</p>
+                  <div className="mt-4 flex items-center gap-2 text-sm text-muted">
+                    <Users className="h-4 w-4" />
+                    <span>{room.participantsCount || 1} people watching</span>
+                  </div>
+                </div>
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-background/70">
+                  <ChevronRight className="h-5 w-5" />
+                </div>
+              </motion.button>
+            ))}
+          </div>
         )}
       </div>
     </div>

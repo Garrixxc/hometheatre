@@ -40,8 +40,8 @@ const AppContent = () => {
 
   if (loading) {
     return (
-      <div className="h-screen bg-background flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-[#0A84FF] border-t-transparent rounded-full animate-spin" />
+      <div className="app-shell flex min-h-screen items-center justify-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-[3px] border-[var(--accent-soft)] border-t-[var(--accent)]" />
       </div>
     );
   }
@@ -49,7 +49,7 @@ const AppContent = () => {
   if (!user) return <LoginView />;
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans selection:bg-[#0A84FF]/30">
+    <div className="app-shell min-h-screen text-foreground font-sans selection:bg-[var(--accent-soft)]">
       <AnimatePresence mode="wait">
         {view === 'home' && (
           <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>

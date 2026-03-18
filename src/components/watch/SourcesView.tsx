@@ -1,14 +1,8 @@
 import React, { useState } from 'react';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { User as FirebaseUser } from 'firebase/auth';
 import { motion } from 'framer-motion';
-import { 
-  Search, 
-  Film, 
-  Youtube, 
-  Play, 
-  HardDrive 
-} from 'lucide-react';
+import { Clapperboard, HardDrive, Search, Youtube } from 'lucide-react';
 import { db } from '../../firebase';
 import { View } from '../../types';
 import { handleFirestoreError, OperationType } from '../../lib/error';
@@ -16,69 +10,77 @@ import { Header } from '../common/UI';
 import { cn } from '../../lib/utils';
 import { YouTubeDiscovery } from './YouTubeDiscovery';
 
-export const SourcesView = ({ 
-  user, 
-  setView, 
-  setActiveRoomId 
-}: { 
-  user: FirebaseUser, 
-  setView: (v: View) => void, 
-  setActiveRoomId: (id: string) => void 
+type Source = {
+  id: string;
+  name: string;
+  accent: string;
+  icon: React.ReactNode;
+  summary: string;
+};
+
+export const SourcesView = ({
+  user,
+  setView,
+  setActiveRoomId,
+}: {
+  user: FirebaseUser;
+  setView: (v: View) => void;
+  setActiveRoomId: (id: string) => void;
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSource, setSelectedSource] = useState<{ id: string, name: string, color: string } | null>(null);
+  const [selectedSource, setSelectedSource] = useState<Source | null>(null);
   const [roomTitle, setRoomTitle] = useState('');
   const [roomDescription, setRoomDescription] = useState('');
   const [roomVideoUrl, setRoomVideoUrl] = useState('');
   const [isSearchingYouTube, setIsSearchingYouTube] = useState(false);
 
-  const sources = [
-    { 
-      id: 'youtube', 
-      name: 'YouTube', 
-      logo: "https://upload.wikimedia.org/wikipedia/commons/b/b8/YouTube_Logo_2017.svg",
-      color: 'from-[#FF0000]/20 to-[#FF0000]/5',
-      accent: '#FF0000'
+  const sources: Source[] = [
+    {
+      id: 'youtube',
+      name: 'YouTube',
+      accent: 'from-rose-500/20 to-red-500/5',
+      icon: <Youtube className="h-8 w-8 text-rose-500" />,
+      summary: 'Pick a public or unlisted video and launch in seconds.',
     },
-    { 
-      id: 'netflix', 
-      name: 'Netflix', 
-      logo: "https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg",
-      color: 'from-[#E50914]/20 to-[#E50914]/5',
-      accent: '#E50914'
+    {
+      id: 'netflix',
+      name: 'Netflix',
+      accent: 'from-[#E50914]/20 to-[#E50914]/5',
+      icon: <Clapperboard className="h-8 w-8 text-[#E50914]" />,
+      summary: 'Share a title link and sync the watch session.',
     },
-    { 
-      id: 'hotstar', 
-      name: 'Hotstar', 
-      logo: "https://secure-media.hotstar.com/web-assets/prod/images/brand-logos/disney-hotstar-logo-dark.svg",
-      color: 'from-[#01147C]/20 to-[#01147C]/5',
-      accent: '#01147C'
+    {
+      id: 'disney',
+      name: 'Disney+',
+      accent: 'from-[#0057D8]/20 to-[#0057D8]/5',
+      icon: <Clapperboard className="h-8 w-8 text-[#0057D8]" />,
+      summary: 'Great for family nights and big-screen marathons.',
     },
-    { 
-      id: 'disney', 
-      name: 'Disney+', 
-      logo: "https://upload.wikimedia.org/wikipedia/commons/3/3e/Disney%2B_logo.svg",
-      color: 'from-[#006E99]/20 to-[#006E99]/5',
-      accent: '#006E99'
+    {
+      id: 'prime',
+      name: 'Prime Video',
+      accent: 'from-[#00A8E1]/20 to-[#00A8E1]/5',
+      icon: <Clapperboard className="h-8 w-8 text-[#00A8E1]" />,
+      summary: 'Start a room around a Prime link or trailer.',
     },
-    { 
-      id: 'prime', 
-      name: 'Prime Video', 
-      logo: "https://upload.wikimedia.org/wikipedia/commons/1/11/Amazon_Prime_Video_logo.svg",
-      color: 'from-[#00A8E1]/20 to-[#00A8E1]/5',
-      accent: '#00A8E1'
+    {
+      id: 'hotstar',
+      name: 'Hotstar',
+      accent: 'from-[#01147C]/20 to-[#01147C]/5',
+      icon: <Clapperboard className="h-8 w-8 text-[#01147C]" />,
+      summary: 'Useful for sports streams, shows, and live events.',
     },
-    { 
-      id: 'movie', 
-      name: 'MP4 Link', 
-      logo: "direct",
-      color: 'from-white/10 to-white/5',
-      accent: '#FFFFFF'
+    {
+      id: 'movie',
+      name: 'Direct Link',
+      accent: 'from-slate-500/20 to-slate-500/5',
+      icon: <HardDrive className="h-8 w-8 text-slate-500" />,
+      summary: 'Paste an MP4 or M3U8 link for direct playback.',
     },
   ];
 
-  const filteredSources = sources.filter(s => 
-    s.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredSources = sources.filter((source) =>
+    source.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   const handleCreateRoom = async () => {
@@ -95,7 +97,7 @@ export const SourcesView = ({
         playbackState: 'paused',
         currentTime: 0,
         type: selectedSource.id,
-        platform: selectedSource.id
+        platform: selectedSource.id,
       });
       setActiveRoomId(docRef.id);
       setView('watch');
@@ -105,166 +107,163 @@ export const SourcesView = ({
   };
 
   return (
-    <div className="pb-32 bg-background min-h-screen">
-      <Header 
-        title={selectedSource?.id === 'youtube' ? "Youtube Discovery" : "Watch Party"} 
-        showBack 
+    <div className="page-shell">
+      <Header
+        title={selectedSource?.id === 'youtube' ? 'Find your YouTube video' : 'Create a watch room'}
+        showBack
         onBack={() => {
           if (isSearchingYouTube) setIsSearchingYouTube(false);
           else if (selectedSource) setSelectedSource(null);
           else setView('watch');
-        }} 
+        }}
       />
-      
-      <div className="px-6 mt-8">
-        {!selectedSource ? (
-          <>
-            <div className="relative mb-8">
-              <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-              <input 
-                type="text" 
-                placeholder="Search platforms..." 
+
+      {!selectedSource ? (
+        <div className="mt-6 space-y-6">
+          <section className="hero-panel rounded-[2rem] p-6 md:p-8">
+            <p className="section-label mb-3">Room Setup</p>
+            <h2 className="text-3xl font-extrabold tracking-[-0.06em] md:text-5xl">Choose a source that matches how your group watches.</h2>
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-muted">
+              The setup flow stays clean on mobile and desktop, while giving you fast access to YouTube, direct links, and streaming platforms.
+            </p>
+          </section>
+
+          <section className="glass-panel rounded-[1.8rem] p-5">
+            <label className="relative block">
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted" />
+              <input
+                type="text"
+                placeholder="Search platforms"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-[#1c1c1e] pl-14 pr-6 py-4 rounded-[2rem] text-sm text-white focus:outline-none focus:ring-4 focus:ring-[#0A84FF]/10 transition-all border border-white/5"
+                className="soft-input pl-12"
               />
-            </div>
+            </label>
+          </section>
 
-            <h2 className="text-[11px] font-black text-gray-500 uppercase tracking-[0.2em] mb-6 px-4">Select Source</h2>
-            <div className="grid grid-cols-2 gap-6">
-              {filteredSources.map((source, idx) => (
-                <motion.button 
-                  key={source.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.05 }}
-                  whileHover={{ y: -8, scale: 1.02 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => {
-                    setSelectedSource(source);
-                    setRoomTitle(`${source.name} Party`);
-                    if (source.id === 'youtube') setIsSearchingYouTube(true);
-                  }}
-                  className={cn(
-                    "relative group h-48 flex flex-col items-center justify-center p-6 rounded-[3rem] gap-4 transition-all overflow-hidden",
-                    "bg-gradient-to-br border border-white/10 shadow-2xl",
-                    source.color
-                  )}
-                >
-                  {/* Decorative background blast */}
-                  <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity blur-3xl -z-10" />
-                  
-                  <div className="w-full flex-1 flex items-center justify-center px-4">
-                    {source.logo === "direct" ? (
-                      <HardDrive className="w-12 h-12 text-white opacity-40" />
-                    ) : (
-                      <img 
-                        src={source.logo} 
-                        alt={source.name} 
-                        className="max-w-full max-h-12 object-contain filter brightness-0 invert opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500" 
-                      />
-                    )}
-                  </div>
-                  
-                  <div className="mt-auto py-2 px-6 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10 group-hover:bg-white/20 transition-all">
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/80 group-hover:text-white">{source.name}</span>
-                  </div>
-                </motion.button>
-              ))}
-            </div>
-          </>
-        ) : selectedSource.id === 'youtube' && isSearchingYouTube ? (
-          <YouTubeDiscovery 
+          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {filteredSources.map((source, index) => (
+              <motion.button
+                key={source.id}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+                whileHover={{ y: -4 }}
+                onClick={() => {
+                  setSelectedSource(source);
+                  setRoomTitle(`${source.name} Party`);
+                  setRoomDescription('');
+                  setRoomVideoUrl('');
+                  if (source.id === 'youtube') {
+                    setIsSearchingYouTube(true);
+                  }
+                }}
+                className={cn(
+                  'glass-panel overflow-hidden rounded-[1.8rem] p-5 text-left',
+                  'bg-gradient-to-br',
+                  source.accent,
+                )}
+              >
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/60 dark:bg-black/20">
+                  {source.icon}
+                </div>
+                <h3 className="mt-5 text-2xl font-extrabold tracking-[-0.05em]">{source.name}</h3>
+                <p className="mt-3 text-sm leading-6 text-muted">{source.summary}</p>
+              </motion.button>
+            ))}
+          </section>
+        </div>
+      ) : selectedSource.id === 'youtube' && isSearchingYouTube ? (
+        <div className="mt-6">
+          <YouTubeDiscovery
             onSelect={(video) => {
               if (video.id === 'custom') {
                 setIsSearchingYouTube(false);
-              } else {
-                setRoomVideoUrl(`https://www.youtube.com/watch?v=${video.id}`);
-                setRoomTitle(video.title);
-                setIsSearchingYouTube(false);
+                return;
               }
-            }} 
+
+              setRoomVideoUrl(`https://www.youtube.com/watch?v=${video.id}`);
+              setRoomTitle(video.title);
+              setRoomDescription(`Watch together from ${video.channel}.`);
+              setIsSearchingYouTube(false);
+            }}
           />
-        ) : (
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="mt-8">
-            <div className="text-center mb-10">
-              <div className={cn("w-24 h-24 rounded-[2.5rem] mx-auto flex items-center justify-center mb-6 shadow-2xl border-4 border-background ring-1 ring-white/10", selectedSource.color)}>
-                {selectedSource.icon}
-              </div>
-              <h2 className="text-3xl font-black text-white mb-2 leading-tight">Start {selectedSource.name} Room</h2>
-              <p className="text-gray-500 font-medium text-sm">Review your party details.</p>
+        </div>
+      ) : (
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mt-6 grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+          <section className={cn('hero-panel rounded-[2rem] p-6 md:p-8 bg-gradient-to-br', selectedSource.accent)}>
+            <div className="flex h-16 w-16 items-center justify-center rounded-[1.5rem] bg-white/70 dark:bg-black/25">
+              {selectedSource.icon}
             </div>
-            
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-4">Room Title</label>
-                <input 
-                  type="text" 
+            <p className="section-label mt-6">Selected source</p>
+            <h2 className="mt-3 text-3xl font-extrabold tracking-[-0.06em]">{selectedSource.name}</h2>
+            <p className="mt-4 text-sm leading-6 text-muted">{selectedSource.summary}</p>
+            {['netflix', 'hotstar', 'disney', 'prime'].includes(selectedSource.id) ? (
+              <div className="mt-6 rounded-[1.3rem] border border-amber-400/25 bg-amber-500/10 p-4 text-sm leading-6 text-amber-700 dark:text-amber-300">
+                Everyone in the room should be signed in to their own streaming account. HomeTheatre will sync the session around the link you provide.
+              </div>
+            ) : null}
+          </section>
+
+          <section className="glass-panel rounded-[2rem] p-6 md:p-8">
+            <div className="grid gap-5">
+              <div>
+                <label className="section-label">Room title</label>
+                <input
+                  type="text"
                   value={roomTitle}
                   onChange={(e) => setRoomTitle(e.target.value)}
-                  placeholder="e.g. Movie Night with Friends"
-                  className="w-full bg-[#1c1c1e] p-6 rounded-[2rem] font-bold text-white border border-white/5 focus:outline-none focus:border-[#0A84FF]/50 transition-all shadow-xl"
-                  autoFocus
+                  placeholder="Movie night with friends"
+                  className="soft-input mt-2"
                 />
               </div>
 
-              <div className="space-y-3 bg-[#1c1c1e] p-6 rounded-[2.5rem] border border-white/5 shadow-2xl">
-                <div className="flex items-center justify-between px-2">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Video Source URL</label>
-                  <span className="text-[9px] bg-[#0A84FF]/20 text-[#0A84FF] px-2 py-0.5 rounded-full font-black">REQUIRED</span>
-                </div>
-                <input 
-                  type="url" 
+              <div>
+                <label className="section-label">Description</label>
+                <textarea
+                  value={roomDescription}
+                  onChange={(e) => setRoomDescription(e.target.value)}
+                  placeholder="What are you watching tonight?"
+                  rows={4}
+                  className="soft-input mt-2 resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="section-label">Video URL</label>
+                <input
+                  type="url"
                   value={roomVideoUrl}
                   onChange={(e) => setRoomVideoUrl(e.target.value)}
-                  placeholder={selectedSource.id === 'youtube' ? "https://youtube.com/watch?v=..." : "https://example.com/video.mp4"}
-                  className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-xs text-white focus:outline-none focus:border-[#0A84FF]/50 transition-all font-mono"
-                />
-                <div className="flex gap-2 px-2 mt-2">
-                  <div className="w-1 h-1 bg-gray-600 rounded-full mt-1.5" />
-                  <p className="text-[10px] text-gray-500 leading-relaxed font-medium">
-                    {selectedSource.id === 'youtube' 
-                      ? "Everyone will see this YouTube video in sync." 
+                  placeholder={
+                    selectedSource.id === 'youtube'
+                      ? 'https://youtube.com/watch?v=...'
                       : selectedSource.id === 'movie'
-                      ? "Direct MP4/M3U8 link required for sync playback."
-                      : `Syncing ${selectedSource.name}. Make sure everyone has an active account.`
-                    }
-                  </p>
-                </div>
+                        ? 'https://example.com/video.mp4'
+                        : 'Paste the show or stream link'
+                  }
+                  className="soft-input mt-2"
+                />
               </div>
             </div>
 
-            <div className="flex flex-col gap-4 mt-12 pb-12">
-              {['netflix', 'hotstar', 'disney', 'prime'].includes(selectedSource.id) && (
-                <div className="bg-[#FF9500]/10 border border-[#FF9500]/20 p-6 rounded-[2rem] mb-4 text-left">
-                  <p className="text-[10px] font-black text-[#FF9500] uppercase tracking-widest mb-2 flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 bg-[#FF9500] rounded-full" />
-                    External Platform Notice
-                  </p>
-                  <p className="text-[11px] text-gray-400 font-medium leading-relaxed">
-                    To watch {selectedSource.name} together, ensure all participants are logged into their own accounts on the official site. We'll sync the experience via the link provided.
-                  </p>
-                </div>
-              )}
-              <button 
-                onClick={handleCreateRoom}
-                className="w-full bg-[#0A84FF] py-5 rounded-[2rem] font-black text-white shadow-2xl shadow-[#0A84FF]/30 hover:scale-[1.02] active:scale-95 transition-all text-sm uppercase tracking-widest"
-              >
-                Launch Watch Room
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <button onClick={handleCreateRoom} className="primary-button flex-1">
+                Launch room
               </button>
-              <button 
+              <button
                 onClick={() => {
                   setSelectedSource(null);
                   setIsSearchingYouTube(false);
                 }}
-                className="w-full bg-white/5 py-5 rounded-[2rem] font-black text-gray-400 hover:text-white transition-all text-xs uppercase tracking-widest"
+                className="secondary-button flex-1"
               >
-                Change Platform
+                Change platform
               </button>
             </div>
-          </motion.div>
-        )}
-      </div>
+          </section>
+        </motion.div>
+      )}
     </div>
   );
 };

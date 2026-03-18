@@ -1,32 +1,32 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { collection, query, where, orderBy, onSnapshot, doc, updateDoc } from 'firebase/firestore';
-import { Bell, Play } from 'lucide-react';
+import React, { useContext, useEffect, useState } from 'react';
+import { collection, doc, onSnapshot, orderBy, query, updateDoc, where } from 'firebase/firestore';
+import { Bell, Check, Play, X } from 'lucide-react';
 import { db } from '../../firebase';
 import { AuthContext } from '../../context/AuthContext';
 import { Invitation, View } from '../../types';
 import { handleFirestoreError, OperationType } from '../../lib/error';
 import { Header } from '../common/UI';
 
-export const NotificationsView = ({ 
-  setView, 
-  setActiveRoomId 
-}: { 
-  setView: (v: View) => void, 
-  setActiveRoomId: (id: string) => void 
+export const NotificationsView = ({
+  setView,
+  setActiveRoomId,
+}: {
+  setView: (v: View) => void;
+  setActiveRoomId: (id: string) => void;
 }) => {
   const { user } = useContext(AuthContext);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
 
   useEffect(() => {
     if (!user) return;
-    const q = query(
-      collection(db, 'invitations'), 
-      where('toId', '==', user.uid),
-      orderBy('timestamp', 'desc')
+    const q = query(collection(db, 'invitations'), where('toId', '==', user.uid), orderBy('timestamp', 'desc'));
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        setInvitations(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Invitation)));
+      },
+      (e) => handleFirestoreError(e, OperationType.LIST, 'invitations'),
     );
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setInvitations(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Invitation)));
-    }, (e) => handleFirestoreError(e, OperationType.LIST, 'invitations'));
     return unsubscribe;
   }, [user]);
 
@@ -43,52 +43,56 @@ export const NotificationsView = ({
   };
 
   return (
-    <div className="pb-24">
-      <Header title="Notifications" />
-      <div className="px-4 mt-4 space-y-4">
+    <div className="page-shell">
+      <Header title="Invites and updates" />
+
+      <div className="mt-6">
         {invitations.length === 0 ? (
-          <div className="text-center py-20 text-gray-500">
-            <Bell className="w-12 h-12 mx-auto mb-4 opacity-20" />
-            <p>No new notifications.</p>
+          <div className="glass-panel rounded-[2rem] p-10 text-center">
+            <Bell className="mx-auto h-12 w-12 text-muted" />
+            <h2 className="mt-5 text-2xl font-extrabold tracking-[-0.05em]">Your inbox is clear</h2>
+            <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-muted">
+              New watch-party invites and updates will appear here as they come in.
+            </p>
           </div>
         ) : (
-          invitations.map(inv => (
-            <div key={inv.id} className="bg-card p-4 rounded-2xl space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-[#0A84FF]/20 rounded-full flex items-center justify-center">
-                  <Play className="w-5 h-5 text-[#0A84FF]" />
+          <div className="space-y-4">
+            {invitations.map((invitation) => (
+              <div key={invitation.id} className="glass-panel rounded-[1.6rem] p-5">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-accent">
+                    <Play className="h-6 w-6" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-base leading-7">
+                      <span className="font-bold">{invitation.fromName}</span> invited you to join{' '}
+                      <span className="font-bold text-accent">{invitation.roomTitle || 'a watch party'}</span>.
+                    </p>
+                    <p className="mt-2 text-sm text-muted">
+                      {invitation.timestamp?.toDate().toLocaleString() || 'Just now'}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm">
-                    <span className="font-bold">{inv.fromName}</span> invited you to join <span className="font-bold text-[#0A84FF]">{inv.roomTitle || 'a watch party'}</span>
-                  </p>
-                  <p className="text-[10px] text-gray-500 mt-0.5">
-                    {inv.timestamp?.toDate().toLocaleTimeString() || 'Just now'}
-                  </p>
-                </div>
+
+                {invitation.status === 'pending' ? (
+                  <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                    <button onClick={() => handleAction(invitation, 'declined')} className="secondary-button flex-1">
+                      <X className="mr-2 inline h-4 w-4" />
+                      Decline
+                    </button>
+                    <button onClick={() => handleAction(invitation, 'accepted')} className="primary-button flex-1">
+                      <Check className="mr-2 inline h-4 w-4" />
+                      Accept
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mt-5 rounded-full bg-background/60 px-4 py-2 text-center text-sm font-semibold text-muted">
+                    {invitation.status === 'accepted' ? 'Accepted' : 'Declined'}
+                  </div>
+                )}
               </div>
-              {inv.status === 'pending' ? (
-                <div className="flex gap-2">
-                  <button 
-                    onClick={() => handleAction(inv, 'declined')}
-                    className="flex-1 bg-background py-2 rounded-xl text-xs font-bold"
-                  >
-                    Decline
-                  </button>
-                  <button 
-                    onClick={() => handleAction(inv, 'accepted')}
-                    className="flex-1 bg-[#0A84FF] py-2 rounded-xl text-xs font-bold text-white"
-                  >
-                    Accept
-                  </button>
-                </div>
-              ) : (
-                <p className="text-[10px] text-center text-gray-500 uppercase font-bold tracking-wider">
-                  {inv.status === 'accepted' ? 'Accepted' : 'Declined'}
-                </p>
-              )}
-            </div>
-          ))
+            ))}
+          </div>
         )}
       </div>
     </div>
